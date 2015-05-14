@@ -33,7 +33,7 @@ Windows(7)/Ubuntu (13.10, 14.04) での動作確認はしています。
   +-- webapp.py      ... Flask の Webサーバーで動かすときはこちら
   +-- webapp.wsgi    ... WSGI 経由で動かす場合はこちら
   +-- setting.py     ... 設定ファイルです（設定方法は後述）
-  +-- worlddict.txt  ... 将来 Wiki記法をサポートしたときの キーバリューのシリアライズファイル。今は未使用
+  +-- worlddict.txt  ... キーバリューのシリアライズファイル。現状は固定キーのみ対応。将来はWikiワードとして登録可能にしたい
   +-- hatena_syntax/ ... はてな記法のパーザ
       +-- __init__.py
       +-- hatena_document.py
@@ -66,6 +66,30 @@ DISPLAY_PAGES = 3
 このサンプルのように Dropbox の同期フォルダなどを指定できるように、という
 意図でコンテンツ関連をアプリの相対パスから切り離しています。
 
+**○固定辞書の作成
+
+worlddict.txt は、ページID の代わりになる
+ページに任意の名前付けを行う、辞書になっています。
+
+現状コミットされている worlddict は
+>||
+PythonRenderer:20130107_112828
+TodoRenderer:20130115_083329
+EntryList:20130107_124248
+Home:20130124_131057
+||<
+
+のようになっていますので、
+運用時にはお使いの環境で作成した任意のページIDに差し替えてください。
+
+|*キー名       |*意味                                                                   |
+|PythonRenderer|Pythonのソースコードをレンダリングするレンダラ                          |
+|TodoRenderer  |Todoリストを実現するレンダラ                                            |
+|EntryList     |ヘッダのナビバーにある「一覧」で呼ばれるページ。一覧レンダラを指定します|
+|Home          |ヘッダのナビバーにある「ホーム」で呼ばれるページ                        |
+
+なお、PythonRenderer, TodoRenderer, EntryList については、
+次項「Pythonスクリプトの書き方」内のサンプルをご利用ください。
 
 **○Python スクリプトの書き方
 Webページを作成方法を解説します
@@ -100,7 +124,14 @@ Webページを作成方法を解説します
 
 *** 3行目 .. このページのレンダラを指定
 このページをレンダリングするレンダラを指定します。
-ページIDを指定します(URLの末尾のユニーク名, 例えば "20130107_112828" など)
+
+指定できるのは
+
+- ページID (URLの末尾のユニーク名, 例えば "20130107_112828" など)
+- WorldDict のキー
+- 予約後 "self"
+
+のいずれかです。
 また、自身をレンダラとする場合は
 >||
 #!rendering:self 
@@ -139,7 +170,216 @@ createRenderer(context) メソッドと定義します。上記で作成した�
 
 
 *** サンプル
+
+**** a) PythonRenderer
+Pythonソースコードを表示するためのレンダラです。
+本ページのサンプルをあたらしページを作成してコピペした後、そのページIDを
+worlddict.txt  に
+
+>||
+PythonRenderer:YYYYMMDD_HHMMSS
+||<
+と登録してください。
+
+>||
+# Python code renderer
+#!rendering:self
+
+class PythonCodeRenderer(object):
+    def __init__(self, context):
+        self.context = context
+
+    def renderViewPage(self,canvas, entry_id):
+        f = self.context.open(entry_id, 'r')
+        canvas.writeOpenTag('pre')
+        for line in f.readlines():
+            canvas.writeText(line)
+        canvas.writeCloseTag('pre')
+
+def createRenderer(mapper):
+    return PythonCodeRenderer(mapper)
+||<
+
+
+**** b)ToDoRenderer
+TODOリストを実現するレンダラです。
+本ページのサンプルをあたらしページを作成してコピペした後、そのページIDを
+worlddict.txt  に
+
+>||
+TodoRenderer:YYYYMMDD_HHMMSS
+||<
+
+と登録してください。
+
+>||
+# todo renderer
+#-*- coding: UTF-8 -*-
+#!rendering:20130107_112828
+import re
+
+class TodoItem(object):
+    def __init__(self, level, check, text):
+        self.id    = None
+        self.level = level
+        self.check = check
+        self.text  = text
+
+    def setId(self, id):
+        self.id = id
+
+    def getSource(self):
+        return '%s[%s]%s' % (' ' * self.level,
+                             self.getCheckChar(),
+                             self.text)
+    def getCheckChar(self):
+       return 'v' if self.check else ''
+
+
+class TodoList(object):
+    def __init__(self, context):
+        self.context = context
+
+    def _splitHeader(self, lines):
+        isInHeader =True
+        header = []
+        body   = []
+        for line in lines:
+            if isInHeader:
+                if len(line) == 0 or len(line.strip()) == 0:
+                    header.append(line)
+                    continue
+                if line[0] == '#':
+                    header.append(line)
+                    continue
+                isInHeader = False
+            body.append(line)
+        return header, body
+
+    def _parseTodoItems(self, lines):
+        items = []
+        for line in lines:
+            item = self._parseTodoItem(line)
+            if item != None:
+                items.append(item)
+
+        # Unique ID を振る
+        for i in range(0, len(items)):
+           items[i].setId('todo%02d'%i)
+        return items
+
+    def _parseTodoItem(self, source):
+        matobj = re.match(r"([ ])?\[([ |v])?\](.*)", source)
+        if matobj == None:
+            return None
+
+        level = 0     if matobj.group(1) == None else len(matobj.group(1))
+        check = False if matobj.group(2) == None else matobj.group(2) == 'v'
+        text  = matobj.group(3).strip()
+        return TodoItem(level, check, text)
+
+    def _renderTodo(self, canvas, items):
+        items.sort(cmp=lambda x, y:cmp(x.id, y.id))
+
+        canvas.writeOpenTag('form',
+                             {'method': 'post',
+                              'action': self.context.url_mapper.getEntryPageUrl(self.context.entry_id)})
+        canvas.writeOpenTag('ul')
+        for item in items:
+            canvas.writeOpenTag('li')
+            canvas.writeRawText('&nbsp;&nbsp;' * item.level )
+            canvas.writeTag('input',item.text,
+                            {'type' :'checkbox',
+                             'name' :item.id,
+                             'value':item.getSource(),
+                             'checked' if item.check else '': ''})
+            canvas.writeCloseTag('li')
+        canvas.writeCloseTag('ul')
+              
+        canvas.writeTag('input', '',
+                        {'type' :"submit",
+                         'value':'Update'})
+
+        canvas.writeCloseTag('form')
+
+    def renderViewPage(self, canvas, page):
+        if self.context.page_func == 'entry' and self.context.request.method == 'POST':
+            self.renderPost(canvas, page)
+        else:
+            self.renderGet(canvas, page)
+
+    def _load(self, page):
+        f = self.context.open(page,'r')
+        header, lines = self._splitHeader(f.readlines())
+
+        items  = self._parseTodoItems(lines)
+        if items == None: items = []
+
+        f.close()
+        return header, items
+
+    def _save(self, page, header, items):
+        f = self.context.open(page, 'w')
+
+        # ヘッダの書き出し
+        for hline in header:
+            f.write(hline)
+
+        # コンテンツの書き出し
+        items.sort(cmp=lambda x, y:cmp(x.id, y.id))
+        for item in items:
+            f.write('%s\n' % item.getSource())
+        f.close()
+
+    def renderGet(self, canvas, page):
+        header, items = self._load(page)
+        self._renderTodo(canvas, items)
+
+    def renderPost(self, canvas, page):
+        # 編集前todoの取得
+        header, ritems = self._load(page)
+
+        # 編集後todoの取得
+        checked_items = []
+        for key, item in self.context.request.form.iteritems():
+            matobj = re.match(r"todo([0-9]+)", key)
+            if matobj == None: continue
+
+            item = self._parseTodoItem(item)
+            if item != None:
+               item.setId(key)
+               item.check = True
+               checked_items.append(item)
+           
+        # マージ
+        item_dict = {}
+        for i in ritems:
+           item_dict[i.id] = i
+           i.check = False
+        for j in checked_items:
+           item_dict[j.id] = j
+
+        # レンダリング
+        self._renderTodo(canvas, item_dict.values())
+
+        # セーブ
+        self._save(page, header, item_dict.values())
+
+
+def createRenderer(context):
+    return TodoList(context)
+||<
+
+**** c) EntryList
 ページの一覧を表示するスクリプトのサンプルです。
+
+本ページのサンプルをあたらしページを作成してコピペした後、そのページIDを
+worlddict.txt  に
+>||
+EntryList:YYYYMMDD_HHMMSS
+||<
+と登録してください。
+（ベージヘッダのナビバーにある「一覧」から エントリーの一覧表示が可能になります）
 
 >||
 # entry_list(reversed)
@@ -190,6 +430,7 @@ class EntryListRenderer(object):
 def createRenderer(mapper):
     return EntryListRenderer(mapper)
 ||<
+
 
 **○その他
 あとはコードを読むなりしてください。
