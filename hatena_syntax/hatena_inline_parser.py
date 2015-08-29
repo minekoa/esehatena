@@ -105,7 +105,6 @@ class InLineParserBase(object):
 class InLineParser(InLineParserBase):
     def elaborate(self):
         self.inline_syntaxes.append(HtmlLinkSyntax())
-        self.inline_syntaxes.append(WikiNameSyntax())
         self.inline_syntaxes.append(ImageSyntax())
         self.inline_syntaxes.append(FootnoteSyntax())
         self.enable_plain_text_parse = True
@@ -245,33 +244,6 @@ class ImageSyntax(HatenaInlineSyntax):
         # node 生成
         img_id = matobj.group(1).strip()
         node = ImageINode(img_id)
-        parent_node.append(node)
-
-        self.scanner.advanceToken() # ']' の分進める
-        return parent_node
-
-class WikiNameSyntax(HatenaInlineSyntax):
-    def __init__(self):
-        self.ptn = re.compile(r"wiki:(.+)")
-
-    def parse_proc(self, parent_node):
-
-        # ブラケットで囲われている中身を取得
-        blacket_tokens = self.scanBlacketContents()
-        if blacket_tokens == None:
-            return None
-
-        # イメージ記法チェック
-        source = ''
-        for t in blacket_tokens: source += t
-
-        matobj = self.ptn.match(source)
-        if matobj == None:
-            return None
-
-        # node 生成
-        wiki_name = matobj.group(1).strip()
-        node = WikiNameINode(wiki_name)
         parent_node.append(node)
 
         self.scanner.advanceToken() # ']' の分進める

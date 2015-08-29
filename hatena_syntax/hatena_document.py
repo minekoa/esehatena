@@ -171,10 +171,3 @@ class ImageINode(HatenaInlineNode):
     def accept(self, visitor):
         visitor.visit_image(self)
 
-class WikiNameINode(HatenaInlineNode):
-    def __init__(self, wiki_name):
-        self.wiki_name = wiki_name
-
-    def accept(self, visitor):
-        visitor.visit_wiki_name(self)
-

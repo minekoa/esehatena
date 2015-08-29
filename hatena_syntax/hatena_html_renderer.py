@@ -266,10 +266,3 @@ class HtmlRenderingVisitor(object):
         url = self.url_mapper.getImageUrl(img.img_id)
         self.canvas.writeOpenTag('img',
                                  {'src':url})
-
-    def visit_wiki_name(self, wiki):
-        url = self.url_mapper.getEntryPageUrl(wiki.wiki_name)
-        self.canvas.writeTag('a', wiki.wiki_name,
-                             {'href': url})
-
-
