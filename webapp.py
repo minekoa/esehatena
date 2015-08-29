@@ -37,6 +37,13 @@ def conv_encoding(data, to_enc="utf_8"):
     else:
         return data
 
+def _create_new_entry_id():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S") 
+
+def _createNewWikiPage(self, wiki_name, entry_id):
+    wf = open(os.path.join(CONTENTS_DIR, entry_id),'w')
+    wf.write(conv_encoding("* %s" % wiki_name))
+    wf.close()
 
 class UrlMapper(object):
     def getCategoryUrl(self, name):
@@ -213,7 +220,15 @@ class EHContext(object):
     def _asEntryId(self, entry_id_or_name):
         if entry_id_pattern.match(entry_id_or_name) != None:
             return entry_id_or_name
-        return self.world_dict[entry_id_or_name]
+        try:    
+            return self.world_dict[entry_id_or_name]
+        except KeyError:
+            name     = entry_id_or_name
+            entry_id = create_new_entry_id()
+
+            self.world_dict[name] = entry_id
+            self.world_dict.save()   # Todo: 並列性を考える (Python の GILを当てにして良い？ --> Flaskの実装次第)
+            return entry_id
 
     def _createEntryFilePath(self, id_or_name):
         entry_id = self._asEntryId(id_or_name)
@@ -371,7 +386,7 @@ def create_new_entry():
     html.writeText('新しいエントリー')
     html.writeCloseTag('h1')
 
-    tmstr = datetime.datetime.now().strftime("%Y%m%d_%H%M%S") 
+    tmstr = _create_new_entry_id()
 
     html.writeOpenTag('form', {'method':'post',
                                'action': url_for('save_entry', entry_id=tmstr)})
