@@ -184,8 +184,8 @@ class WorldDictionary(object):
         f.close()
 
     def save(self):
-        f.open(self.dict_file_path, 'w')
-        for key, value in self.dict_items.iteritems():
+        f = open(self.dict_file_path, 'w')
+        for key, value in self.dict_.iteritems():
             f.write('%s:%s\n' % (key,value))
         f.close
 
@@ -224,7 +224,7 @@ class EHContext(object):
             return self.world_dict[entry_id_or_name]
         except KeyError:
             name     = entry_id_or_name
-            entry_id = create_new_entry_id()
+            entry_id = _create_new_entry_id()
 
             self.world_dict[name] = entry_id
             self.world_dict.save()   # Todo: 並列性を考える (Python の GILを当てにして良い？ --> Flaskの実装次第)
@@ -234,6 +234,9 @@ class EHContext(object):
         entry_id = self._asEntryId(id_or_name)
         return os.path.join(self.contents_dir, entry_id)
 
+    def _existEntry(self, id_or_name):
+        fpath = self._createEntryFilePath(id_or_name)
+        return os.path.exists(fpath)
 
 def _createContext(entry_id_or_name, page_func):
     url_mapper    = UrlMapper()
@@ -355,6 +358,10 @@ def entry_page(id_or_name):
     context  = _createContext(id_or_name, 'entry')
     entry_id = context._asEntryId(id_or_name)
 
+    # 名前のときは新しいページの作成へ
+    if entry_id != id_or_name and (not context._existEntry(entry_id)):
+        return create_new_wiki_entry(id_or_name, entry_id)
+
     # レンダリングフレームワーク構築
     canvas        = hatena_syntax.HtmlCanvas()
     canvas.header.writeTag('meta', '', {'HTTP-EQUIV':'Content-Style-Type', 'content':'text/css'})
@@ -376,6 +383,25 @@ def entry_page(id_or_name):
 
     return canvas.rendering()
 
+def create_new_wiki_entry(name, entry_id):
+    html = hatena_syntax.HtmlCanvas()
+    _renderingHtmlHeader(html)
+
+    html.writeOpenTag('h1')
+    html.writeText('新しいエントリー')
+    html.writeCloseTag('h1')
+
+    html.writeOpenTag('form', {'method':'post',
+                               'action': url_for('save_entry', entry_id=entry_id)})
+    html.writeTag('textarea', '* %s' % name, {'name':'hatena_entry'})
+    html.writeOpenTag('div')
+    html.writeOpenTag('input', {'type':'submit',
+                                'value':'Accept'})
+    html.writeCloseTag('div')
+    html.writeCloseTag('form')
+
+    return html.rendering()
+    
 
 @app.route("/create_new_entry")
 def create_new_entry():
