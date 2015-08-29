@@ -221,9 +221,10 @@ class EHContext(object):
         if entry_id_pattern.match(entry_id_or_name) != None:
             return entry_id_or_name
         try:    
-            return self.world_dict[entry_id_or_name]
+            name     = conv_encoding(entry_id_or_name)
+            return self.world_dict[name]
         except KeyError:
-            name     = entry_id_or_name
+            name     = conv_encoding(entry_id_or_name)
             entry_id = _create_new_entry_id()
 
             self.world_dict[name] = entry_id
