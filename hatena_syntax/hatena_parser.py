@@ -290,23 +290,35 @@ class BlockQuoteSyntax(HatenaSyntax):
     '''
     BlockQuoteスキャナ。
 
-    @todo BlockQuote内のブロック要素に対応していない。
-    EntryContentSyntax が再帰する構成になるが、
-    今の構造では対応出来ない。
+    @todo BlockQuoteのにネストに対応していない。
+    また、EntryContextSyntax の二重実装になってしまっていて、
+    コード的に美しくない。
+    EntryContentSyntax が再帰する構成が望ましいが    
+    今の構造ではParserが無限グラフになってしまい対応出来ない。
     '''
     def __init__(self):
         self.link_parser   = HtmlLinkParser()
-        self.line_parser   = InLineParser()
+        self.inline_parser = InLineParser()
+        self._elaborate()
 
         self.start_ptn = re.compile(r"^>([^>]+)?>")
         self.end_ptn   = re.compile(r"^<<")
-        pass
 
+    def _elaborate(self):
+        self.syntaxes = []
+        self.syntaxes.append(HeaderSyntax())
+        self.syntaxes.append(SuprePreSyntax())
+        self.syntaxes.append(TableSyntax())
+        self.syntaxes.append(ListSyntax())
+        self.syntaxes.append(NumberListSyntax())
+    def setScanner(self, scanner):
+        self.scanner = scanner
+        for syntax in self.syntaxes:
+            syntax.setScanner(scanner)
 
-    def parse(self, parent_node):
+    def _parseBqStart(self):
         line = self.scanner.getLine()
 
-        # detect starting
         matobj = self.start_ptn.match(line) 
         if matobj == None: return None
 
@@ -315,21 +327,48 @@ class BlockQuoteSyntax(HatenaSyntax):
             if link.isEmpty(): return None
         else:
             link = None
-        node = BlockQuoteNode(link)
-        parent_node.append(node)
+        bq_node = BlockQuoteNode(link)
+
+        self.scanner.advanceLine()
+        return bq_node
+
+    def parse(self, parent_node):
+        # detect BQ start line
+        bq_node = self._parseBqStart()
+        if bq_node == None: return None
+        parent_node.append(bq_node)
 
         # contents source collect
         lines = ''
+        paragraph = None
+
         while True:
-            self.scanner.advanceLine()
             line = self.scanner.getLine()
 
+            # 終わりを検出
             if self.end_ptn.match(line) != None:
                 self.scanner.advanceLine()
                 break
 
-            line_node = self.line_parser.parse(line)
-            node.append(line_node)
+            # 何らかのはてな記法検出
+            for syntax in self.syntaxes:
+                tmp = syntax.parse(bq_node)
+                if tmp != None:
+                    paragraph = None
+                    break
+
+            else: # その他は地の文扱い
+                if len(line.strip()) == 0:
+                    paragraph = None
+                    self.scanner.advanceLine()
+                    continue
+
+                if paragraph == None:
+                    paragraph = ParagraphNode()
+                    bq_node.append(paragraph)
+                paragraph.append(self.inline_parser.parse(line))
+                self.scanner.advanceLine()
+
         else:
             return None
 
