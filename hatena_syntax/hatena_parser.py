@@ -311,6 +311,7 @@ class BlockQuoteSyntax(HatenaSyntax):
         self.syntaxes.append(TableSyntax())
         self.syntaxes.append(ListSyntax())
         self.syntaxes.append(NumberListSyntax())
+
     def setScanner(self, scanner):
         self.scanner = scanner
         for syntax in self.syntaxes:
