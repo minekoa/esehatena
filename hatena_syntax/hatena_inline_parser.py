@@ -14,7 +14,7 @@ class InLineScanner(object):
         self.scan_buf       = self.line 
         self.rollback_state = None
 
-        self.separater_ptn = re.compile(r"[ \t\[\]\(\)_]")
+        self.separater_ptn = re.compile(r"[ \t\[\]\(\)]")
 
     #----------------------------------------
     # rollback proc
