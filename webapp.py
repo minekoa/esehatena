@@ -155,7 +155,14 @@ class DefaultRenderer(object):
         parser  = hatena_syntax.HatenaParser()
         hatena_document = parser.parse(scanner)
 
-        # 2. rendering
+        # 2. wget Link URL
+        title_appender = hatena_syntax.PageTitleAppender()
+        hatena_document.accept(title_appender)
+        # (todo)
+        #  title_appender にtitleをアペンドしたURLの一覧が入っているので、
+        #  page のソースにもそれを反映させる
+
+        # 3. rendering
         html_renderer = hatena_syntax.HtmlRenderingVisitor(canvas, self.context.url_mapper)
         hatena_document.accept(html_renderer)
 
