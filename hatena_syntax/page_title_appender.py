@@ -50,8 +50,7 @@ class PageTitleAppender(object):
     def visit_entry(self, node):
         for child in node.children: child.accept(self)
     def visit_entry_header(self, node): pass
-    def visit_header(self, node):
-        for child in node.children: child.accept(self)
+    def visit_header(self, node): pass
 
     def visit_supre_pre(self, supre_pre): pass
     def visit_paragraph(self, paragraph):
