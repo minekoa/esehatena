@@ -1,4 +1,5 @@
 #-*- coding: shift_jis -*-
+import re
 
 #================================================
 # Block Element Node
@@ -153,6 +154,16 @@ class HtmlLinkINode(HatenaInlineNode):
 
     def getUrl(self):
         return '%s%s' % (self.protocol, self.url_body)
+
+    def getTitleOption(self):
+        for opt in self.options:
+            if re.match(r"title(=.*)?", opt): return opt
+        else:
+            return ''
+
+    def asString(self):
+        optstr = ':'.join(self.options)
+        return self.getUrl() + ':' + optstr if optstr != '' else self.getUrl()
 
     def accept(self, visitor):
         visitor.visit_html_link(self)

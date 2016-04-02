@@ -5,6 +5,7 @@ import os.path
 import datetime
 import re
 import sys
+import codecs
 
 import hatena_syntax
 
@@ -90,8 +91,7 @@ def _renderingPagingBar(canvas, current_page):
     canvas.writeCloseTag('div')
 
 def _loadShebang(filepath):
-    f = open(filepath, 'r')
-    try:
+    with open(filepath, 'r') as f:
         for line in f.readlines():
             if len(line.strip()) == 0:
                 continue
@@ -102,8 +102,6 @@ def _loadShebang(filepath):
                 return ''
         else:
             return ''
-    finally:
-        f.close()
 
 def _getRenderer(first_line, current_entry_id, context):
 
@@ -158,14 +156,57 @@ class DefaultRenderer(object):
         # 2. wget Link URL
         title_appender = hatena_syntax.PageTitleAppender()
         hatena_document.accept(title_appender)
-        # (todo)
-        #  title_appender にtitleをアペンドしたURLの一覧が入っているので、
-        #  page のソースにもそれを反映させる
 
         # 3. rendering
         html_renderer = hatena_syntax.HtmlRenderingVisitor(canvas, self.context.url_mapper)
         hatena_document.accept(html_renderer)
 
+class PageCompleter(object):
+    '''
+    Hatena記法で書かれたページに対して、あとはお任せで完成させる処理。
+    具体的には、
+      -  link記法でかれた title を wget で取得して補完する
+    を行う。
+    '''
+
+    def __init__(self, context):
+        self.context = context
+
+    def _parse(self, filepath):
+        scanner = hatena_syntax.FileScanner()
+        scanner.openFile(filepath)
+        parser  = hatena_syntax.HatenaParser()
+        return parser.parse(scanner)
+
+    def _save(self, contents, filepath):
+        '''contents は [line]'''
+        with codecs.open(filepath, 'w', 'utf-8') as wf:
+            for line in contents:
+                wf.write(line)
+
+    def complete(self, entry_id):
+        filepath = self.context._createEntryFilePath(entry_id)
+
+        # 1. parsing
+        hatena_document = self._parse(filepath)
+
+        # 2. wget Link URL
+        title_appender = hatena_syntax.PageTitleAppender()
+        hatena_document.accept(title_appender)
+
+        # 3. source_complete
+        new_contents = []
+        with codecs.open(filepath, 'r', 'utf-8') as rf:
+            for line in rf:
+                for linkobj in title_appender.link_list:
+                    target_ptn = r'%s:title([^=])' % re.escape(linkobj.getUrl())
+                    repl_txt = r"%s\1" % linkobj.asString()
+                    line = re.sub(target_ptn, repl_txt, line)
+                    print 'replace!', line[:-1]
+                new_contents.append(line)
+
+        # 4. save
+        self._save(new_contents, filepath)
 
 class WorldDictionary(object):
     '''世界辞書。ユニークな名前とコンテンツIDのマッピングを行う'''
@@ -458,9 +499,10 @@ def edit_entry(entry_id):
 
 @app.route("/save_entry/<entry_id>", methods=['POST'])
 def save_entry(entry_id):
-    wf = open(os.path.join(CONTENTS_DIR,entry_id),'w')
-    wf.write(conv_encoding(request.form['hatena_entry']))
-    wf.close()
+    filepath = os.path.join(CONTENTS_DIR,entry_id)
+
+    with open(filepath,'w') as wf:
+        wf.write(conv_encoding(request.form['hatena_entry']))
 
     canvas        = hatena_syntax.HtmlCanvas()
     _renderingHtmlHeader(canvas)
@@ -468,9 +510,13 @@ def save_entry(entry_id):
 
     # レンダリングエンジンの同定
     context = _createContext(entry_id, 'save_entry')
-
-    filepath = os.path.join(CONTENTS_DIR, entry_id)
     renderer = _getRenderer(_loadShebang(filepath), entry_id, context)
+
+    # hack! 本当は一度セーブ前にcompleteするのがよいですが、
+    # renderer の同定とかがファイルを開く処理になっているのでめんどいので。
+    if type(renderer) == DefaultRenderer:
+        completer = PageCompleter(context)
+        completer.complete(entry_id)
 
     # レンダリング
     canvas.writeTag('p', '以下のファイルを作成しました。')
