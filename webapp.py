@@ -199,9 +199,9 @@ class PageCompleter(object):
         with codecs.open(filepath, 'r', 'utf-8') as rf:
             for line in rf:
                 for linkobj in title_appender.link_list:
-                    target_ptn = r'%s:title([^=])' % re.escape(linkobj.getUrl())
-                    repl_txt = r"%s\1" % linkobj.asString()
-                    line = re.sub(target_ptn, repl_txt, line)
+                    target_ptn = ur'%s:title([^=])' % re.escape(linkobj.getUrl())
+                    repl_txt = conv_encoding(r"%s\1" % linkobj.asString(), 'utf_8')
+                    line = re.sub(target_ptn, repl_txt, conv_encoding(line,'utf_8')).decode('utf_8')
                     print 'replace!', line[:-1]
                 new_contents.append(line)
 
