@@ -20,7 +20,7 @@ class HtmlTitleGetter(HTMLParser):
 
     def handle_data(self, data):
         if not self.is_in_title_element: return
-        self.title = data
+        self.title = data.strip()
         self.is_in_title_element = False
 
 def getPageTitle(url):
@@ -35,7 +35,8 @@ def getPageTitle(url):
         title_getter.close()
     except IOError:
         pass
-
+    except UnicodeDecodeError:
+        pass
     return title_getter.title
 
 #------------------------------------------------------------
@@ -71,7 +72,7 @@ class PageTitleAppender(object):
     # inline element ------------------------
     def visit_plane_text(self, text): pass
     def visit_footnote(self, footnote): pass
-    def vislt_image(self, img): pass
+    def visit_image(self, img): pass
     def visit_wiki_name(self, wiki): pass
 
     def visit_html_link(self, html_link):
