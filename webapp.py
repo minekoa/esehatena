@@ -216,13 +216,11 @@ class PageCompleter(object):
             for line in rf:
                 for linkobj in title_appender.link_list:
                     target_ptn = r'%s:title([^=])' % re.escape(linkobj.getUrl())
-                    repl_txt = r"%s\1" % linkobj.asString()
+                    repl_txt   = r"%s\1" % linkobj.asString()
 
-                    target_ptn = ez_decode(target_ptn)
-                    repl_txt   = ez_decode(repl_txt)
-                    line       = ez_decode(line)
-
-                    line = re.sub(target_ptn, repl_txt, line)
+                    line = re.sub( ez_decode(target_ptn),
+                                   ez_decode(repl_txt),
+                                   ez_decode(line) )
                     print 'replace!', line[:-1]
                 new_contents.append(line)
 
