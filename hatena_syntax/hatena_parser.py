@@ -148,7 +148,7 @@ class AnonymousEntrySyntax(HatenaSyntax):
 class EntryHeaderSyntax(HatenaSyntax):
     def __init__(self):
         HatenaSyntax.__init__(self)
-        self.ptn = re.compile(r"(\*+)(\[[^\]]+\])?(.*)$")        
+        self.ptn = re.compile(r"(\*+)(([ ]*\[[^\]]+\])*)(.*)$")        
 
     def isMatch(self, line):
         matobj = self.ptn.match(line)
@@ -166,13 +166,28 @@ class EntryHeaderSyntax(HatenaSyntax):
         if matobj == None: return None
         if len(matobj.group(1)) != 1: return None
 
-        if matobj.group(2) == None: cat = ''
-        else                      : cat = matobj.group(2)[1:-1]
-        node = EntryHeaderNode(cat, matobj.group(3))
+        if matobj.group(2) == None: cats = []
+        else                      : cats = self._make_cats_list(matobj.group(2))
+        node = EntryHeaderNode(cats, matobj.group(4))
 
         parent_node.append(node)
         self.scanner.advanceLine()
         return parent_node
+
+    def _make_cats_list(self, src):
+        cats = []
+        in_cat = False
+        tmp  = ''
+
+        print "CATSOURCE:" , src
+        for c in src:
+            if not in_cat and c == '[' : in_cat = True
+            elif in_cat and c == ']':
+                cats.append(tmp.strip())
+                in_cat = False
+                tmp = ''
+            else: tmp += c
+        return cats
 
 
 class EntryContentSyntax(HatenaSyntax):

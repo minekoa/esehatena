@@ -27,8 +27,8 @@ class EntryNode(HatenaNode):
 
 
 class EntryHeaderNode(HatenaNode):
-    def __init__(self, category, text):
-        self.category = category
+    def __init__(self, categories, text):
+        self.categories = categories
         self.text     = text
 
     def accept(self, visitor):

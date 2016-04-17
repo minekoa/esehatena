@@ -109,14 +109,20 @@ class HtmlRenderingVisitor(object):
         self.footnote_cache = []
 
     def visit_entry_header(self, entry_header):
-        self.canvas.writeOpenTag('h1')
-        if entry_header.category != '':
-            self.canvas.writeText('[')
-            self.canvas.writeOpenTag('a', {'href':self.url_mapper.getCategoryUrl(entry_header.category)})
-            self.canvas.writeText(entry_header.category)
-            self.canvas.writeCloseTag('a')
-            self.canvas.writeText(']')
+        self.canvas.writeOpenTag('h1', {'class':'page_title'})
         self.canvas.writeText(entry_header.text)
+
+        self.canvas.writeOpenTag('div', {'class':'page_categories'})
+        isfirst = True
+        for cat in entry_header.categories:
+            if isfirst: isfirst = False
+            else: self.canvas.writeText(', ')
+            
+            self.canvas.writeOpenTag('a', {'href':self.url_mapper.getCategoryUrl(cat)})
+            self.canvas.writeText(cat)
+            self.canvas.writeCloseTag('a')
+        self.canvas.writeCloseTag('div')
+
         self.canvas.writeCloseTag('h1')
 
     def visit_header(self, header):
