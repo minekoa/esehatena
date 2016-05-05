@@ -312,9 +312,18 @@ class EHContext(object):
         entry_id = self._asEntryId(id_or_name)
         return os.path.join(self.contents_dir, entry_id)
 
+    def _createEntryDirPath(self, id_or_name):
+        entry_id = self._asEntryId(id_or_name)
+        return os.path.join(self.contents_dir, entry_id + 'd')
+
     def _existEntry(self, id_or_name):
         fpath = self._createEntryFilePath(id_or_name)
         return os.path.exists(fpath)
+
+    def getImageIdList(self):
+        dpath = self._createEntryDirPath(self.entry_id)
+        if not os.path.exists(dpath): return []
+        return [img_name for img_name in os.listdir(dpath) if os.path.splitext(img_name)[1].lower() in ['.png', '.jpg', '.jpeg', '.gif']]
 
 def _createContext(entry_id_or_name, page_func):
     url_mapper    = UrlMapper()
@@ -524,14 +533,21 @@ def edit_entry(entry_id):
     html.writeCloseTag('form')
 
     # image upload form
+    context = _createContext(entry_id, 'edit_entry')
     html.writeOpenTag('form', {'method':'post',
                                'enctype':"multipart/form-data",
                                'action': url_for('upload_image', page_id=entry_id)})
-    html.writeOpenTag('input', {'type':'file',
+    html.writeOpenTag('ul')
+    for img in context.getImageIdList():
+        html.writeTag('li', img)
+    html.writeOpenTag('li')
+    html.writeTag('input', '', {'type':'file',
                                 'accept':'image/*',
                                 'name':'image'})
-    html.writeOpenTag('input', {'type':'submit',
+    html.writeTag('input', '', {'type':'submit',
                                 'value':'upload'})
+    html.writeCloseTag('li')
+    html.writeCloseTag('ul')
     html.writeCloseTag('form')
 
 
