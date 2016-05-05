@@ -294,6 +294,30 @@ class EHContext(object):
         f = open(fpath, mode)
         return ContentFileWrapper(entry_id_or_name, f)
 
+    def getTitle(self):
+        if self.entry_id == None: return None
+        fpath = self._createEntryFilePath(self.entry_id)
+        with open(fpath,'r') as f:
+            headline = f.readline().strip()
+            if len(headline) == 0:
+                headline = '(無題)'
+            elif headline[0] == '*':
+                headline = headline[1:]
+            cats, title = self._parseTitle(headline)
+        return title
+
+    def getCategories(self):
+        if self.entry_id == None: return None
+        fpath = self._createEntryFilePath(self.entry_id)
+        with open(fpath,'r') as f:
+            headline = f.readline().strip()
+            if len(headline) == 0:
+                headline = '(無題)'
+            elif headline[0] == '*':
+                headline = headline[1:]
+            cats, title = self._parseTitle(headline)
+        return cats
+
     def _asEntryId(self, entry_id_or_name):
         if entry_id_pattern.match(entry_id_or_name) != None:
             return entry_id_or_name
@@ -319,6 +343,21 @@ class EHContext(object):
     def _existEntry(self, id_or_name):
         fpath = self._createEntryFilePath(id_or_name)
         return os.path.exists(fpath)
+
+    def _parseTitle(self, title_line):
+        cats = []
+        in_cat = False
+        tmp  = ''
+
+        for c in title_line:
+            if not in_cat and c == '[' : in_cat = True
+            elif in_cat and c == ']':
+                cats.append(tmp.strip())
+                in_cat = False
+                tmp = ''
+            else: tmp += c
+        return (cats, tmp.strip()) # ([cat:string], title:string)
+
 
     def getImageIdList(self):
         dpath = self._createEntryDirPath(self.entry_id)
@@ -401,6 +440,45 @@ def index():
             hatena_document.accept(html_renderer)
             html.writeOpenTag('hr')
     _renderingPagingBar(html, 0)
+    return html.rendering()
+
+@app.route("/category/<cat_name>")
+def category_page(cat_name):
+    files = os.listdir(CONTENTS_DIR)
+    files.sort()
+    files.reverse()
+    selected_files = [fpath for fpath in files if re.match(r"^[0-9]+_[0-9]+$",fpath) != None]
+
+    context_list =[]
+    for entry_id in selected_files:
+        context  = _createContext(entry_id, 'entry')
+        if ez_decode(cat_name) in [ez_decode(cat) for cat in context.getCategories()]:
+            context_list.append(context)
+
+    # レンダリング（ページヘッダ）
+    html = hatena_syntax.HtmlCanvas()
+    _renderingHtmlHeader(html)
+    html.writeTag('h1', SITE_NAME, {'class':'site_title'})
+    _renderingNaviBar(html)
+
+    # レンダリング(カテゴリヘッダ % TOC)
+    html.writeTag('h2', 'category: "%s"' % cat_name)
+    html.writeOpenTag('ul')
+    for context in context_list:
+        html.writeTag('li', context.getTitle())
+    html.writeCloseTag('ul')
+    html.writeTag('hr','')
+
+    # レンダリング(各コンテンツ)
+    for context in context_list:
+        # レンダリングエンジンの同定
+        filepath = context._createEntryFilePath(context.entry_id)
+        renderer = _getRenderer(_loadShebang(filepath), context.entry_id, context)
+
+        # レンダリング
+        renderer.renderViewPage(html, context.entry_id)
+        html.writeOpenTag('hr')
+
     return html.rendering()
 
 
@@ -580,10 +658,6 @@ def save_entry(entry_id):
     renderer.renderViewPage(canvas, entry_id)
 
     return canvas.rendering()
-
-@app.route("/category/<cat_name>")
-def category_page(cat_name):
-    pass
 
 
 def _getImageContentType(img_id):
