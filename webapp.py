@@ -7,6 +7,9 @@ import re
 import sys
 import codecs
 
+from werkzeug import secure_filename
+
+
 import hatena_syntax
 
 #============================================================
@@ -63,11 +66,17 @@ def _createNewWikiPage(self, wiki_name, entry_id):
     wf.close()
 
 class UrlMapper(object):
+    def __init__(self, current_page_id=None):
+        self.current_page_id = current_page_id
+
     def getCategoryUrl(self, name):
         return url_for('category_page', cat_name=name )
 
     def getImageUrl(self, img_id):
-        return url_for('image', img_id=img_id)
+        if self.current_page_id == None:
+            return url_for('image', '00000000_000000', img_id=img_id)
+        else:
+            return url_for('image', page_id=self.current_page_id, img_id=img_id)
 
     def getEntryPageUrl(self, id_or_name):
         return url_for('entry_page', id_or_name=id_or_name)
@@ -277,6 +286,7 @@ class EHContext(object):
         aId = self._asEntryId(entry_id_or_name)
         self.entry_id   = aId
         self.entry_name = entry_id_or_name if entry_id_or_name == aId else ''
+        self.url_mapper.current_page_id = aId
 
     def open(self, entry_id_or_name, mode):
         '''コンテンツファイルを開く'''
@@ -376,7 +386,7 @@ def index():
             hatena_document = parser.parse(scanner)
 
             # 2. rendering
-            url_mapper    = UrlMapper()
+            url_mapper    = UrlMapper(fpath)
             html_renderer = hatena_syntax.HtmlRenderingVisitor(html, url_mapper)
 
             hatena_document.accept(html_renderer)
@@ -410,7 +420,7 @@ def blog_style_page(page_num):
             hatena_document = parser.parse(scanner)
 
             # 2. rendering
-            url_mapper    = UrlMapper()
+            url_mapper    = UrlMapper(fpath)
             html_renderer = hatena_syntax.HtmlRenderingVisitor(html, url_mapper)
 
             hatena_document.accept(html_renderer)
@@ -508,10 +518,22 @@ def edit_entry(entry_id):
     rf.close()
 
     html.writeOpenTag('div')
-    html.writeOpenTag('input', {'type':'submit',
+    html.writeTag('input', '', {'type':'submit',
                                 'value':'Accept'})
     html.writeCloseTag('div')
     html.writeCloseTag('form')
+
+    # image upload form
+    html.writeOpenTag('form', {'method':'post',
+                               'enctype':"multipart/form-data",
+                               'action': url_for('upload_image', page_id=entry_id)})
+    html.writeOpenTag('input', {'type':'file',
+                                'accept':'image/*',
+                                'name':'image'})
+    html.writeOpenTag('input', {'type':'submit',
+                                'value':'upload'})
+    html.writeCloseTag('form')
+
 
     return html.rendering()
 
@@ -557,15 +579,30 @@ def _getImageContentType(img_id):
     else:
         return 'image/%s' % ext[1:]
 
-@app.route('/image/<img_id>')
-def image(img_id):
+@app.route('/image/<page_id>/<img_id>')
+def image(page_id,img_id):
+    page_dir = os.path.join(CONTENTS_DIR, page_id+'d')
+    img_path = os.path.join(page_dir, img_id)        #local
+    if not os.path.exists(img_path):
+        img_path = os.path.join(CONTENTS_DIR,img_id) #global
+
     try:
-        rf = open(os.path.join(CONTENTS_DIR,img_id),'rb')
+        rf = open(img_path,'rb')
     except IOError:
         abort(404)
 
     return Response(rf.read(),
                     content_type=_getImageContentType(img_id))
+
+
+@app.route('/upload_image/<page_id>', methods=['POST'])
+def upload_image(page_id):
+    f = request.files['image']
+    page_dir = os.path.join(CONTENTS_DIR, page_id+'d')
+    if not os.path.exists(page_dir): os.mkdir(page_dir)
+    f.save(os.path.join(page_dir, secure_filename(f.filename)))
+    return '<p>ok</p>'
+    
 
 if __name__ == '__main__':
     app.run(debug=True)
