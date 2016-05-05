@@ -243,8 +243,21 @@ class ImageSyntax(HatenaInlineSyntax):
             return None
 
         # node 生成
-        img_id = matobj.group(1).strip()
-        node = ImageINode(img_id)
+        id_and_attrs = matobj.group(1).strip().split(':')
+        img_id = id_and_attrs[0]
+        width  = None
+        height = None
+
+        for attr in id_and_attrs[1:]:
+            w_mat = re.match(r'^w([0-9]+)$', attr)
+            h_mat = re.match(r'^h([0-9]+)$', attr)
+            if w_mat != None: width  = int(w_mat.group(1))
+            if h_mat != None: height = int(h_mat.group(1))
+
+            if width == None and height == None:  # 最初の属性記法が登場するまでは、
+                img_id = img_id + attr            # 属性表記ではなく ファイル名に ':' が含まれていたと判断
+        
+        node = ImageINode(img_id, width, height)
         parent_node.append(node)
 
         self.scanner.advanceToken() # ']' の分進める

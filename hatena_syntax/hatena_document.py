@@ -176,8 +176,10 @@ class FootnoteINode(HatenaInlineNode):
         visitor.visit_footnote(self)
 
 class ImageINode(HatenaInlineNode):
-    def __init__(self, img_id):
+    def __init__(self, img_id, width=None, height=None):
         self.img_id = img_id
+        self.width  = width
+        self.height = height
 
     def accept(self, visitor):
         visitor.visit_image(self)

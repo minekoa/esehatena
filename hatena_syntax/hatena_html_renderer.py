@@ -270,8 +270,10 @@ class HtmlRenderingVisitor(object):
 
     def visit_image(self, img):
         url = self.url_mapper.getImageUrl(img.img_id)
-        self.canvas.writeOpenTag('img',
-                                 {'src':url})
+        attrs = {'src':url}
+        if img.width  != None: attrs['width']  = '%d' % img.width
+        if img.height != None: attrs['height'] = '%d' % img.height
+        self.canvas.writeOpenTag('img', attrs)
 
     def visit_wiki_name(self, wiki):
         url = self.url_mapper.getEntryPageUrl(wiki.wiki_name)
