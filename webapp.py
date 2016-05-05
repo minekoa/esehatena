@@ -688,11 +688,12 @@ def image(page_id,img_id):
 @app.route('/upload_image/<page_id>', methods=['POST'])
 def upload_image(page_id):
     f = request.files['image']
-    page_dir = os.path.join(CONTENTS_DIR, page_id+'d')
-    if not os.path.exists(page_dir): os.mkdir(page_dir)
-    f.save(os.path.join(page_dir, secure_filename(f.filename)))
-    return '<p>ok</p>'
-    
+    if not f.filename == '':
+        page_dir = os.path.join(CONTENTS_DIR, page_id+'d')
+        if not os.path.exists(page_dir): os.mkdir(page_dir)
+        f.save(os.path.join(page_dir, secure_filename(f.filename)))
+
+    return redirect(url_for('edit_entry', entry_id=page_id))
 
 if __name__ == '__main__':
     app.run(debug=True)
