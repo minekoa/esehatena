@@ -596,6 +596,9 @@ def edit_entry(entry_id):
     _renderingHtmlHeader(html)
 
     html.writeTag('h1', 'エントリの編集')
+    html.writeOpenTag('p')
+    html.writeTag('a', '戻る', {'href': url_for('entry_page', id_or_name=entry_id)})
+    html.writeCloseTag('p')
 
     html.writeOpenTag('form', {'method':'post',
                                'action': url_for('save_entry', entry_id=entry_id)})
