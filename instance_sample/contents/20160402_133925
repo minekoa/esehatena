@@ -1,0 +1,80 @@
+# category_list
+#-*- coding: utf-8 -*-
+#!rendering: self
+
+import re
+import os
+
+class EntryListRenderer(object):
+    def __init__(self, context):
+        self.context = context
+
+
+    def createContentsList(self):
+        contents_list = []
+
+        for dpath, dirs, files in os.walk(self.context.contents_dir):
+            files.sort()
+            files.reverse()
+
+            for fpath in files:
+                if re.match(r"^[0-9]+_[0-9]+$", fpath) == None: continue
+
+                path = os.path.join(dpath, fpath)
+
+                with open(path,'r') as f:
+                    headline = f.readline().strip()
+                    if len(headline) == 0:
+                       headline = '(無題)'
+                    elif headline[0] == '*':
+                       headline = headline[1:]
+                    cats, title = self.parseTitle(headline)
+                    contents_list.append((cats, title, fpath))
+        return contents_list
+
+    def parseTitle(self, line):
+        cats = []
+        in_cat = False
+        tmp  = ''
+
+        for c in line:
+            if not in_cat and c == '[' : in_cat = True
+            elif in_cat and c == ']':
+                cats.append(tmp.strip())
+                in_cat = False
+                tmp = ''
+            else: tmp += c
+        return (cats, tmp.strip()) # ([cat:string], title:string)
+
+
+    def renderViewPage(self, html, filepath):
+        html.writeTag('h1', 'カテゴリ別一覧', {'class':'page_title'})
+
+
+        contents_list = self.createContentsList()
+        catmap = {}
+        for cats, title, path in contents_list:
+            for cat in cats:
+                if not cat in catmap: catmap[cat] = []
+                catmap[cat].append((title,path))
+
+
+        html.writeOpenTag('table', {'border':'1'})
+        for cat, pages in sorted(catmap.items(), key= lambda x : x[0].upper()):
+            html.writeOpenTag('tr')
+            html.writeOpenTag('td'),
+            html.writeTag('a', cat, {'href': self.context.url_mapper.getCategoryUrl(cat)})
+            html.writeCloseTag('td')
+            html.writeOpenTag('td')
+            html.writeOpenTag('ul')
+            for title, path in pages:
+                html.writeOpenTag('li')
+                html.writeTag('a', title, 
+                              {'href': self.context.url_mapper.getEntryPageUrl(path)})
+                html.writeCloseTag('li')
+
+            html.writeCloseTag('ul')
+        html.writeCloseTag('table')
+
+def createRenderer(mapper):
+    return EntryListRenderer(mapper)
