@@ -44,7 +44,7 @@ class UrlMapper(object):
         return UrlMapper(current_entry_id)
 
 class RenderingOptions(object):
-    '''Renderer に渡すための引数のようなもの'''
+    '''Renderer に渡すための引数のようなもの.多分だれも使っていない'''
 
     def __init__(self, page_func, request):
         assert( page_func in ["entry", "edit_entry", "save_entry"] )
@@ -81,6 +81,7 @@ def _createNewWikiPage(self, wiki_name, entry_id):
 #--------------------------------------------------------------------------------
 # Rendering Tools
 #--------------------------------------------------------------------------------
+
 def _renderingHtmlHeader(canvas):
     canvas.header.writeTag('meta', '', {'HTTP-EQUIV':'Content-Style-Type', 'content':'text/css'})
     canvas.header.writeTag('link', '', {'rel':'stylesheet', 'href':url_for('stylesheet'), 'type':'text/css'})

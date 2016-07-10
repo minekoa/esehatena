@@ -12,17 +12,11 @@ import codecs
 
 from werkzeug import secure_filename
 
-
 #------------------------------------------------------------
 # Constants
 #------------------------------------------------------------
 
 entry_id_pattern = re.compile(r"[0-9]{8}_[0-9]{6}")
-
-#------------------------------------------------------------
-# Actions
-#------------------------------------------------------------
-
 
 #------------------------------------------------------------
 # Tools
@@ -40,7 +34,6 @@ def _loadShebang(filepath):
                 return ''
         else:
             return ''
-
 
 #------------------------------------------------------------
 # Context and Entreis 
@@ -114,13 +107,6 @@ class EHEntry(object):
     #----------------------------------------
     # ファイル操作
     #----------------------------------------
-    def open(self, mode):
-        '''コンテンツファイルを開く(managed renderer向け)
-        (今は誰も使ってないです)
-        '''
-        f = open(self._getFilePath(), mode)
-        return ContentFileWrapper(entry_id_or_name, f)
-
     def read(self):
         '''コンテンツの中身を読み込む'''
         with codecs.open(self._getFilePath(), 'r', 'utf-8') as rf:
@@ -220,32 +206,6 @@ class EHEntry(object):
             else: tmp += c
         return (cats, tmp.strip()) # ([cat:string], title:string)
 
-
-class ContentFileWrapper(object):
-    '''
-    contents/ 配下のIDアライズされたファイルの操作ラッパー
-    今は誰も使っていない
-    '''
-
-    def __init__(self, entry_id, f):
-        self.entry_id = entry_id
-        self.f = f
-
-    def __del__(self):
-        self.f.close()
-
-    def readline(self):
-        self.f.readline()
-
-    def readlines(self):
-        return self.f.readlines()
-
-    def write(self, line):
-        self.f.write(conv_encoding(line))
-
-    def close(self):
-        self.f.close()
-
 #------------------------------------------------------------
 # World Dictionary
 #------------------------------------------------------------
@@ -337,5 +297,4 @@ class HatenaRenderer(object):
         # 3. rendering
         html_renderer = hatena_syntax.HtmlRenderingVisitor(canvas, entry.getUrlMapper())
         hatena_document.accept(html_renderer)
-
 
