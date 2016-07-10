@@ -34,6 +34,9 @@ class UrlMapper(object):
     def getEntryPageUrl(self, id_or_name):
         return url_for('entry_page', id_or_name=id_or_name)
 
+    def getEditEntryUrl(self, entry_id):
+        return url_for('edit_entry', entry_id=entry_id)
+
     def getEntryCreatePageUrl(self):
         return url_for('create_new_entry')
 
@@ -126,7 +129,7 @@ def index():
     # レンダリング(各コンテンツ)
     for entry in entry_list:
         renderer = getRenderer(context, entry)
-        renderer.renderViewPage(html, entry.entry_id)
+        renderer.renderViewPage(html, entry)
         html.writeOpenTag('hr')
 
     # レンダリング（フッダ）
@@ -151,7 +154,7 @@ def blog_style_page(page_num):
     # レンダリング(各コンテンツ)
     for entry in entry_list:
         renderer = getRenderer(context, entry)
-        renderer.renderViewPage(html, entry.entry_id)
+        renderer.renderViewPage(html, entry)
         html.writeOpenTag('hr')
 
     # レンダリング（フッダ）
@@ -181,7 +184,7 @@ def category_page(cat_name):
     # レンダリング(各コンテンツ)
     for entry in entry_list:
         renderer = getRenderer(context, entry)
-        renderer.renderViewPage(html, entry.entry_id)
+        renderer.renderViewPage(html, entry)
         html.writeOpenTag('hr')
 
     return html.rendering()
@@ -204,7 +207,7 @@ def entry_page(id_or_name):
 
     # レンダリング(本体)
     renderer = getRenderer(context, context.getEntry(entry_id))
-    renderer.renderViewPage(html, entry.entry_id)
+    renderer.renderViewPage(html, entry)
 
     return html.rendering()
 
@@ -314,7 +317,7 @@ def save_entry(entry_id):
 
     html.writeTag('p', '以下のファイルを作成しました。')
     renderer = getRenderer(context, entry)
-    renderer.renderViewPage(html, entry_id)
+    renderer.renderViewPage(html, entry)
 
     return html.rendering()
 

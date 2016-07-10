@@ -9,22 +9,7 @@ class EntryListRenderer(object):
     def __init__(self, context):
         self.context = context
 
-    def _parseTitle(self, line):
-        cats = []
-        in_cat = False
-        tmp  = ''
-
-        for c in line:
-            if not in_cat and c == '[' : in_cat = True
-            elif in_cat and c == ']':
-                cats.append(tmp.strip())
-                in_cat = False
-                tmp = ''
-            else: tmp += c
-        return (cats, tmp.strip()) # ([cat:string], title:string)
-
-
-    def renderViewPage(self, html, filepath):
+    def renderViewPage(self, html, entry):
         html.writeTag('h1', '一覧（逆順）')
 
         html.writeOpenTag('p')
@@ -33,33 +18,21 @@ class EntryListRenderer(object):
         html.writeCloseTag('p')
 
         html.writeOpenTag('table', {'border':'1'})
-        for dpath, dirs, files in os.walk(self.context.contents_dir):
-            files.sort()
-            files.reverse()
 
-            for fpath in files:
-                if re.match(r"^[0-9]+_[0-9]+$", fpath) == None:
-                    continue
+        entry_list = sorted(self.context.getEntryList(), key=lambda entry: entry.entry_id, reverse=True)
+        for entry in entry_list:
+            title = entry.getTitle()
+            cats  = entry.getCategories()
 
-                path = os.path.join(dpath, fpath)
-                f = open(path, 'r')
-                headline = f.readline().strip()
-                if len(headline) == 0:
-                    headline = '(無題)'
-                elif headline[0] == '*':
-                    headline = headline[1:]
-                cats, title = self._parseTitle(headline)
+            html.writeOpenTag('tr')
+            html.writeTag('td', '%s-%s-%s' % (entry.entry_id[:4],entry.entry_id[4:6],entry.entry_id[6:8]) )
+            html.writeOpenTag('td')
+            html.writeTag('a', title,
+                          {'href': entry.getViewPageUrl()})
+            html.writeTag('div', ', '.join(cats), {'style':'color:gray; font-size:0.8em'})
+            html.writeCloseTag('td')
+            html.writeCloseTag('tr')
 
-                html.writeOpenTag('tr')
-                html.writeTag('td', '%s-%s-%s' % (fpath[:4],fpath[4:6],fpath[6:8]) )
-                html.writeOpenTag('td')
-                html.writeTag('a', title,
-                              {'href': self.context.url_mapper.getEntryPageUrl(fpath)})
-                html.writeTag('div', ', '.join(cats), {'style':'color:gray; font-size:0.8em'})
-
-                html.writeCloseTag('td')
-                html.writeCloseTag('tr')
-                f.close()
         html.writeCloseTag('table')
 
 def createRenderer(mapper):

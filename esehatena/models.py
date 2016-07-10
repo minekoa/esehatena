@@ -175,6 +175,12 @@ class EHEntry(object):
     def getUrlMapper(self):
         return self.context.url_mapper.clone(self.entry_id)
 
+    def getViewPageUrl(self):
+        return self.context.url_mapper.getEntryPageUrl(self.entry_id)
+
+    def getEditPageUrl(self):
+        return self.context.url_mapper.getEditEntryUrl(self.entry_id)
+
     #----------------------------------------
     # イメージ操作
     #----------------------------------------
@@ -317,9 +323,7 @@ class HatenaRenderer(object):
     def __init__(self, context):
         self.context = context
 
-    def renderViewPage(self, canvas, entry_id):
-        entry    = self.context.getEntry(entry_id)
-
+    def renderViewPage(self, canvas, entry):
         # 1. parsing
         scanner = hatena_syntax.FileScanner()
         scanner.openFile(entry._getFilePath())

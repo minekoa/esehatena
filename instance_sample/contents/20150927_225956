@@ -5,8 +5,7 @@ class PythonCodeRenderer(object):
     def __init__(self, context):
         self.context = context
 
-    def renderViewPage(self, canvas, entry_id):
-        entry = self.context.getEntry(entry_id)
+    def renderViewPage(self,canvas, entry):
         canvas.writeOpenTag('pre')
         for line in entry.readlines():
             canvas.writeText(line)
