@@ -333,7 +333,7 @@ def image(entry_id, img_id):
                             content_type=_getImageContentType(img_id))
         else: # old stype path (global image path)
             path = os.path.join(context.contents_dir, img_id)
-            rf = open(img_path,'rb')
+            rf = open(path,'rb')
             return Response(rf.read(),
                             content_type=_getImageContentType(img_id))
     except IOError:

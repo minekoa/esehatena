@@ -75,6 +75,8 @@ class EHContext(object):
         EntryID と Name を扱うツール
           world_dict に依存するので、共通のツール関数ではなく
           このクラス内に置かれる
+        注意!: (というかTODO)
+            name でこの関数を呼び出すと勝手にworlddictに登録したうえでentry_idを返す。
         '''
 
         if entry_id_pattern.match(entry_id_or_name) != None:
@@ -178,7 +180,7 @@ class EHEntry(object):
 
     def loadImage(self, img_id):
         path = os.path.join(self._getDirPath(), img_id)
-        with open(path, 'r') as f:
+        with open(path, 'rb') as f:
             return f.read()
 
     #----------------------------------------
