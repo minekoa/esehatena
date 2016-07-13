@@ -82,9 +82,12 @@ def _createNewWikiPage(self, wiki_name, entry_id):
 # Rendering Tools
 #--------------------------------------------------------------------------------
 
-def _renderingHtmlHeader(canvas):
+def _renderingHtmlHeader(canvas, title=None):
     canvas.header.writeTag('meta', '', {'HTTP-EQUIV':'Content-Style-Type', 'content':'text/css'})
     canvas.header.writeTag('link', '', {'rel':'stylesheet', 'href':url_for('stylesheet'), 'type':'text/css'})
+
+    title_str = '%s - %s' % (title, app.config["SITE_NAME"]) if title != None else app.config["SITE_NAME"]
+    canvas.header.writeTag('title', title_str)
     
 def _renderingNaviBar(canvas, entry_id=None):
     canvas.writeOpenTag('div', {'class':'navibar'})
@@ -170,7 +173,7 @@ def category_page(cat_name):
 
     # レンダリング（ページヘッダ）
     html = hatena_syntax.HtmlCanvas()
-    _renderingHtmlHeader(html)
+    _renderingHtmlHeader(html, cat_name)
     html.writeTag('h1', app.config["SITE_NAME"], {'class':'site_title'})
     _renderingNaviBar(html)
 
@@ -202,7 +205,7 @@ def entry_page(id_or_name):
 
     # レンダリング(ヘッダ）
     html = hatena_syntax.HtmlCanvas()
-    _renderingHtmlHeader(html)
+    _renderingHtmlHeader(html, entry.getTitle())
     html.writeTag('h1', app.config["SITE_NAME"], {'class':'site_title'})
     _renderingNaviBar(html, entry_id)
 
@@ -218,7 +221,7 @@ def create_new_entry():
     html = hatena_syntax.HtmlCanvas()
 
     # ヘッダ
-    _renderingHtmlHeader(html)
+    _renderingHtmlHeader(html, '(* new entry *)')
     html.writeOpenTag('h1')
     html.writeText('新しいエントリー')
     html.writeCloseTag('h1')
@@ -238,7 +241,7 @@ def create_new_entry():
 
 def create_new_wiki_entry(name, entry_id):
     html = hatena_syntax.HtmlCanvas()
-    _renderingHtmlHeader(html)
+    _renderingHtmlHeader(html, name)
 
     html.writeOpenTag('h1')
     html.writeText('新しいエントリー')
@@ -262,7 +265,7 @@ def edit_entry(entry_id):
     entry   = context.getEntry(entry_id)
 
     # HTMLヘッダのレンダリング
-    _renderingHtmlHeader(html)
+    _renderingHtmlHeader(html, entry.getTitle())
     html.writeTag('h1', 'エントリの編集')
     html.writeOpenTag('p')
     html.writeTag('a', '戻る', {'href': url_for('entry_page', id_or_name=entry_id)})
@@ -313,7 +316,7 @@ def save_entry(entry_id):
 
     # レンダリング
     html = hatena_syntax.HtmlCanvas()
-    _renderingHtmlHeader(html)
+    _renderingHtmlHeader(html, entry.getTitle())
     _renderingNaviBar(html, entry_id)
 
     html.writeTag('p', '以下のファイルを作成しました。')
