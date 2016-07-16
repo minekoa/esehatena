@@ -1,7 +1,7 @@
 #-*- coding:utf-8 -*-
 from flask import redirect, url_for, request, abort, Response
 
-from viewmodels import UrlMapper, createContext, getRenderer
+from viewmodels import createContext, getRenderer
 from my_enc_tool import *
 from page_completer import PageCompleter
 from hatena_syntax import HtmlCanvas
@@ -188,7 +188,7 @@ def create_new_entry():
 
     html.writeOpenTag('form', {'method':'post',
                                'action': url_for('save_entry', entry_id=tmstr)})
-    html.writeTag('textarea', '', {'name':'hatena_entry'})
+    html.writeTag('textarea', '', {'name':'source'})
     html.writeOpenTag('div')
     html.writeOpenTag('input', {'type':'submit',
                                 'value':'Accept'})
@@ -207,7 +207,7 @@ def create_new_wiki_entry(name, entry_id):
 
     html.writeOpenTag('form', {'method':'post',
                                'action': url_for('save_entry', entry_id=entry_id)})
-    html.writeTag('textarea', '* %s' % name, {'name':'hatena_entry'})
+    html.writeTag('textarea', '* %s' % name, {'name':'source'})
     html.writeOpenTag('div')
     html.writeOpenTag('input', {'type':'submit',
                                 'value':'Accept'})
@@ -233,7 +233,7 @@ def edit_entry(entry_id):
     html.writeOpenTag('form', {'method':'post',
                                'action': url_for('save_entry', entry_id=entry_id)})
 
-    html.writeTag('textarea', entry.read(), {'name':'hatena_entry'})
+    html.writeTag('textarea', entry.read(), {'name':'source'})
 
     html.writeOpenTag('div')
     html.writeTag('input', '', {'type':'submit',
@@ -264,7 +264,7 @@ def edit_entry(entry_id):
 def save_entry(entry_id):
     context = createContext('save_entry')
     entry   = context.getEntry(entry_id)
-    entry.write(conv_encoding(request.form['hatena_entry']))
+    entry.write(conv_encoding(request.form['source']))
 
     # hack! 本当は一度セーブ前にcompleteするのがよいですが、
     # renderer の同定とかがファイルを開く処理になっているのでめんどいので。
@@ -313,5 +313,6 @@ def upload_image(entry_id):
 
 @app.route('/stylesheet.css')
 def stylesheet():
-    return open(app.config["STYLE_SHEET"]).read()
+    return Response(open(app.config["STYLE_SHEET"]).read(),
+                    content_type='text/css')
 

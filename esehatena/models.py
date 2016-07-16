@@ -127,6 +127,11 @@ class EHEntry(object):
             for line in lines:
                 wf.write(line)
 
+    def createScanner(self):
+        scanner = hatena_syntax.FileScanner()
+        scanner.openFile(self._getFilePath())
+        return scanner
+
     #----------------------------------------
     # メタ情報
     #----------------------------------------
@@ -274,8 +279,7 @@ class HatenaRenderer(object):
 
     def renderViewPage(self, canvas, entry):
         # 1. parsing
-        scanner = hatena_syntax.FileScanner()
-        scanner.openFile(entry._getFilePath())
+        scanner = entry.createScanner()
         parser  = hatena_syntax.HatenaParser()
         hatena_document = parser.parse(scanner)
 

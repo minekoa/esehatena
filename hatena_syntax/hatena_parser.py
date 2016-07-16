@@ -179,7 +179,6 @@ class EntryHeaderSyntax(HatenaSyntax):
         in_cat = False
         tmp  = ''
 
-        print "CATSOURCE:" , src
         for c in src:
             if not in_cat and c == '[' : in_cat = True
             elif in_cat and c == ']':
