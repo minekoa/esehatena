@@ -97,34 +97,37 @@ class VirtualEntry(EHEntry):
         elif headline[0] == '*': headline = headline[1:]
         return self._parseTitle(headline)
 
+def _entry2data(entry, fields, context):
+    entry_data = {}
+    if 'id'         in fields: entry_data['id']         = entry.entry_id
+    if 'title'      in fields: entry_data['title']      = entry.getTitle()
+    if 'categories' in fields: entry_data['categories'] = entry.getCategories()
+    if 'html'       in fields: entry_data['html']       = _renderingEntry(context, entry)
+    if 'source'     in fields: entry_data['source']     = entry.read()
+    return entry_data
 #------------------------------------------------------------
 # API
 #------------------------------------------------------------
 
 @app.route('/api/v1/entries', methods=['GET'])
 def get_entries():
+    fields  = request.args.get('fields').split(',')
     context = createContext('entry')
-    return json.dumps( [ {'entry': {'id'   : entry.entry_id,
-                                    'title': entry.getTitle(),
-                                    'categories': entry.getCategories()}}
-                          for entry
-                          in context.getEntryList() ]
-                       )
+    js = json.dumps( [ {'entry': _entry2data(entry, fields, context)}
+                       for entry
+                       in context.getEntryList() ] )
+    return Response(js, status=200, mimetype='application/json')
 
-@app.route('/api/v1/entry/<id_or_name>', methods=['GET'])
+
+@app.route('/api/v1/entries/<id_or_name>', methods=['GET'])
 def get_entry(id_or_name):
-    print id_or_name
+    fields = request.args.get('fields').split(',')
     context  = createContext('entry')
     if not context.existEntry(id_or_name): abort(404)
     entry    = context.getEntry(id_or_name)
 
-    # レンダリング
-    return json.dumps(
-        {'entry' : {'id'   : entry.entry_id,
-                    'title': entry.getTitle(),
-                    'categories': entry.getCategories(),
-                    'html': _renderingEntry(context, entry) }}
-    )
+    js = json.dumps({'entry' : _entry2data(entry, fields, context)})
+    return Response(js, status=200, mimetype='application/json')
 
 @app.route('/api/v1/categories', methods=['GET'])
 def get_categories():
@@ -137,17 +140,18 @@ def get_categories():
             {'category': {'name'   : cat,
                           'entries': [ {'entry': {'id': e.entry_id, 'title': e.getTitle()}}
                                        for e in entries ] }} )
-    return json.dumps(lst)
+    return Response(json.dumps(lst), status=200, mimetype='application/json')
 
-@app.route('/api/v1/category/<category_name>', methods=['GET'])
+@app.route('/api/v1/categories/<category_name>', methods=['GET'])
 def get_category(category_name):
     context = createContext('entry')
     catmap  = _getCatMap(context)
-    return json.dumps(
+    js = json.dumps(
         {'category': {'name'   : category_name,
                       'entries': [ {'entry': {'id': e.entry_id, 'title': e.getTitle()}}
                                    for e in catmap[category_name] ] }}
     )
+    return Response(js, status=200, mimetype='application/json')
 
 @app.route('/api/v1/preview', methods=['POST'])
 def api_preview():
@@ -156,10 +160,11 @@ def api_preview():
     entry    = VirtualEntry(context,
                             json_obj['id'], '', ez_decode(json_obj['source']))
                        
-    return json.dumps(
+    js = json.dumps(
         {'entry' : {'id'   : entry.entry_id,
                     'title': entry.getTitle(),
                     'categories': entry.getCategories(),
                     'html': _renderingEntry(context, entry) }}
     )
+    return Response(js, status=200, mimetype='application/json')
 

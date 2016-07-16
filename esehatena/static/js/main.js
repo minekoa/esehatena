@@ -17,10 +17,14 @@ var addNaviBar = function() {
     $('#nv_home').click(function(){viewEntry($('#screen'),'Home');});
 };
 
+var addScreen = function() {
+    $('#Main').append('<div id="screen"></div>')
+};
+
 var viewEntryList =function() {
     $.ajax({
         type:"get",
-        url:"../api/v1/entries",
+        url:"../api/v1/entries?fields=id,title,categories",
         contentType: 'application/json',
         dataType: "json",
         success: function(json_data) {
@@ -50,7 +54,7 @@ var viewEntryList =function() {
 var viewEntry = function(jobj, entry_id) {
     $.ajax({
         type:"get",
-        url:"../api/v1/entry/" + entry_id,
+        url:"../api/v1/entries/" + entry_id + '?fields=html',
         contentType: 'application/json',
         dataType: "json",
         success: function(json_data) {
@@ -68,7 +72,7 @@ var viewEntry = function(jobj, entry_id) {
 var viewPage = function(page, span) {
     $.ajax({
         type:"get",
-        url:"../api/v1/entries",
+        url:"../api/v1/entries?fields=id",
         contentType: 'application/json',
         dataType: "json",
         success: function(json_data) {
@@ -121,7 +125,7 @@ var addCreateForm = function() {
 var init = function() {
     addSiteHeader();
     addNaviBar();
-    $('#Main').append('<div id="screen"></div>')
+    addScreen();
 }
 
 $(init)
