@@ -139,7 +139,7 @@ def category_page(cat_name):
     html.writeOpenTag('ul')
     for entry in entry_list:
         html.writeOpenTag('li')
-        html.writeTag('a', entry.getTitle(), {'href':entry.getViewPageUrl()})
+        html.writeTag('a', entry.getTitle(), {'href': '#%s' %entry.idString()})
         html.writeCloseTag('li')
     html.writeCloseTag('ul')
     html.writeTag('hr','')
