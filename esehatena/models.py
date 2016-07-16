@@ -169,6 +169,10 @@ class EHEntry(object):
     def getEditPageUrl(self):
         return self.context.url_mapper.getEditEntryUrl(self.entry_id)
 
+    def idString(self):
+        '''for ページ内ジャンプ'''
+        return 'entry%s' % self.entry_id
+
     #----------------------------------------
     # イメージ操作
     #----------------------------------------
@@ -280,6 +284,6 @@ class HatenaRenderer(object):
         hatena_document.accept(title_appender)
 
         # 3. rendering
-        html_renderer = hatena_syntax.HtmlRenderingVisitor(canvas, entry.getUrlMapper())
+        html_renderer = hatena_syntax.HtmlRenderingVisitor(canvas, entry)
         hatena_document.accept(html_renderer)
 

@@ -80,11 +80,11 @@ class HtmlCanvas(HtmlCanvasBase):
                         '</html>'])
 
 class HtmlRenderingVisitor(object):
-    def __init__(self, canvas, url_mapper):
+    def __init__(self, canvas, entry):
         self.canvas     = canvas
-        self.url_mapper = url_mapper
+        self.entry      = entry
+        self.url_mapper = entry.getUrlMapper()
 
-        self.entry_id = ''
         self.footnote_cache = []
 
 
@@ -102,14 +102,14 @@ class HtmlRenderingVisitor(object):
             footnote = self.footnote_cache[i]
             self.canvas.writeOpenTag('div')
             self.canvas.writeTag('a', '*%d' % (i+1),
-                                 {'id'  : '%sf%d'   % (self.entry_id, i+1),
-                                  'href': '#%sfn%d' % (self.entry_id, i+1)})
+                                 {'id'  : '%sf%d'   % (self.entry.entry_id, i+1),
+                                  'href': '#%sfn%d' % (self.entry.entry_id, i+1)})
             self.canvas.writeText(footnote.content)
             self.canvas.writeCloseTag('div')
         self.footnote_cache = []
 
     def visit_entry_header(self, entry_header):
-        self.canvas.writeOpenTag('h1', {'class':'page_title'})
+        self.canvas.writeOpenTag('h1', {'class':'page_title', 'id': self.entry.idString()})
         self.canvas.writeText(entry_header.text)
 
         self.canvas.writeOpenTag('div', {'class':'page_categories'})
@@ -264,8 +264,8 @@ class HtmlRenderingVisitor(object):
         self.footnote_cache.append(footnote)
         fn_id = len(self.footnote_cache)
         self.canvas.writeTag('a', '*%d' % fn_id,
-                             {'href' : '#%sf%d' % (self.entry_id, fn_id),
-                              'id'   : '%sfn%d' % (self.entry_id, fn_id),
+                             {'href' : '#%sf%d' % (self.entry.entry_id, fn_id),
+                              'id'   : '%sfn%d' % (self.entry.entry_id, fn_id),
                               'title': footnote.content})
 
     def visit_image(self, img):

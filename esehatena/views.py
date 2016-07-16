@@ -42,6 +42,10 @@ def _renderingHtmlHeader(canvas, title=None):
     title_str = '%s - %s' % (title, app.config["SITE_NAME"]) if title != None else app.config["SITE_NAME"]
     canvas.header.writeTag('title', title_str)
 
+def _renderingPageHeader(canvas, entry=None):
+    _renderingSiteTitle(canvas)
+    _renderingNaviBar(canvas, entry.entry_id if entry != None else None)
+
 def _renderingSiteTitle(canvas):
     canvas.writeTag('h1', app.config["SITE_NAME"], {'class':'site_title'})
     
@@ -83,8 +87,7 @@ def index():
     # レンダリング（ヘッダ）
     html = HtmlCanvas()
     _renderingHtmlHeader(html)
-    _renderingSiteTitle(html)
-    _renderingNaviBar(html)
+    _renderingPageHeader(html)
 
     # レンダリング(各コンテンツ)
     for entry in entry_list:
@@ -108,8 +111,7 @@ def blog_style_page(page_num):
     # レンダリング（ヘッダ）
     html = HtmlCanvas()
     _renderingHtmlHeader(html)
-    _renderintSiteTitle(html)
-    _renderingNaviBar(html)
+    _renderingPageHeader(html)
 
     # レンダリング(各コンテンツ)
     for entry in entry_list:
@@ -130,14 +132,15 @@ def category_page(cat_name):
     # レンダリング（ページヘッダ）
     html = HtmlCanvas()
     _renderingHtmlHeader(html, cat_name)
-    _renderingSiteTitle(html)
-    _renderingNaviBar(html)
+    _renderingPageHeader(html)
 
     # レンダリング(カテゴリヘッダ % TOC)
     html.writeTag('h2', 'category: "%s"' % cat_name)
     html.writeOpenTag('ul')
     for entry in entry_list:
-        html.writeTag('li', entry.getTitle())
+        html.writeOpenTag('li')
+        html.writeTag('a', entry.getTitle(), {'href':entry.getViewPageUrl()})
+        html.writeCloseTag('li')
     html.writeCloseTag('ul')
     html.writeTag('hr','')
 
