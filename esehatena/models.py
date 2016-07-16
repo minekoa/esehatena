@@ -48,7 +48,7 @@ class EHContext(object):
         self.rendering_opts = rendering_opts # 描画用オプション
 
     def getEntry(self, entry_id_or_name):
-        aId   = self.asEntryId(entry_id_or_name)
+        aId   = self._asEntryId(entry_id_or_name)
         aName = entry_id_or_name if entry_id_or_name == aId else ''
         return EHEntry(self, aId, aName)
 
@@ -60,7 +60,7 @@ class EHContext(object):
         return [EHEntry(self, entry_id, '') for entry_id in selected_files] 
 
     def existEntry(self, id_or_name):
-        eid = self.asEntryId(id_or_name)
+        eid = self._asEntryId(id_or_name)
         fpath = os.path.join(self.contents_dir, eid)
         return os.path.exists(fpath)
 
@@ -70,7 +70,7 @@ class EHContext(object):
     #----------------------------------------
     # Utilities
     #----------------------------------------
-    def asEntryId(self, entry_id_or_name):
+    def _asEntryId(self, entry_id_or_name):
         '''
         EntryID と Name を扱うツール
           world_dict に依存するので、共通のツール関数ではなく
@@ -248,27 +248,10 @@ class WorldDictionary(object):
         self.dict_[key] = value
 
 #------------------------------------------------------------
-# Module Loader (for Renderer Entry)
+# Renderer Module Loader (for Renderer Entry)
 #------------------------------------------------------------
 
-def getRenderer(context, entry):
-    assert(context != None)
-    assert(entry   != None)
-
-    # モジュールのロード
-    renderer_id = entry.getRendererId()
-    if renderer_id != None:
-        mod = loadModule( context.getEntry(renderer_id) )
-    else:
-        mod = None
-
-    # レンダラーの生成
-    if mod != None: #id is None or module load failure.
-        return mod.createRenderer(context)
-    else:
-        return HatenaRenderer(context) #(default)
-
-def loadModule(module_entry):
+def loadRendererModule(module_entry):
     try:
         with open(module_entry._getFilePath(), 'r') as module_file:
             import imp
