@@ -64,6 +64,9 @@ class EHContext(object):
         fpath = os.path.join(self.contents_dir, eid)
         return os.path.exists(fpath)
 
+    def createEntry(self):
+        return self.getEntry( self.createNewEntryId() )
+
     def createNewEntryId(self):
         return datetime.datetime.now().strftime("%Y%m%d_%H%M%S") 
 
@@ -216,6 +219,76 @@ class EHEntry(object):
                 tmp = ''
             else: tmp += c
         return (cats, tmp.strip()) # ([cat:string], title:string)
+
+
+class VirtualEntry(EHEntry):
+    '''オンメモリ上だけの仮のエントリー。Accept前にいろいろやりたいケース向け
+    エントリー用フォルダーが必要な操作をすると、NotImplementedErrorを投げるので注意
+    '''
+    def __init__(self, context, entry_id, entry_name, source):
+        EHEntry.__init__(self, context, entry_id, entry_name)
+        self.source = ez_decode(source)
+
+    #----------------------------------------
+    # <del>ファイル操作</del>→テキスト操作
+    #----------------------------------------
+    def read(self):              return conv_encoding(self.source)
+    def readlines(self):         return self.source.split(u'\n')
+    def write(self, text):       self.source = ez_decode(text)
+    def writelines(self, lines): u'\n'.join(ez_decode(l) for l in lines)
+    def createScanner(self):
+        scanner = hatena_syntax.TextScanner()
+        scanner.setSource(self.source)
+        return scanner
+
+    #----------------------------------------
+    # メタ情報
+    #----------------------------------------
+    def getImageIdList(self):
+        return []
+
+    def getRendererId(self):
+        '''
+        自身をレンダリングして欲しいモジュールの entry_idを取得する
+        '''
+        first_line = self._loadShebang()
+
+        matobj = re.match(r"#!rendering:(.*)", first_line)
+        if matobj != None:
+            renderer_id = matobj.group(1).strip()
+            if renderer_id == 'self':
+                renderer_id = self.entry_id
+            return renderer_id
+        else:
+            return None
+
+    def _loadShebang(self):
+        for line in self.readlines():
+            if len(line.strip()) == 0:
+                continue
+            elif line[0] == '#':
+                if re.match(r"#!", line) != None:
+                    return line
+            else:
+                return ''
+        else:
+            return ''
+
+    #----------------------------------------
+    # イメージ操作
+    #----------------------------------------
+    def saveImage(self, uploadFile): raise NotImplementedError
+    def loadImage(self, img_id):     raise NotImplementedError
+
+    #----------------------------------------
+    # private (このクラスの中以外で使っちゃダメよ)
+    #----------------------------------------
+    def _getCatsAndTitle(self):
+        headline = self.readlines()[0]
+        if len(headline) == 0:   headline = '(無題)'
+        elif headline[0] == '*': headline = headline[1:]
+        return self._parseTitle(headline)
+
 
 #------------------------------------------------------------
 # World Dictionary

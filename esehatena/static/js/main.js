@@ -13,7 +13,7 @@ var addNaviBar = function() {
 
     $('#nv_top').click(function(){viewPage(0, 10);});
     $('#nv_list').click(viewEntryList);
-    $('#nv_new').click(addCreateForm);
+    $('#nv_new').click(viewCreateForm);
     $('#nv_home').click(function(){viewEntry($('#screen'),'Home',$('#nv_edit'));});
 };
 
@@ -101,7 +101,7 @@ var viewEditForm = function(entry_id) {
                       +   '<div style="padding:0.5em; width:50%">'
                       +       '<p>editor</p>'
                       +       '<textarea id="source" style="width:100%"></textarea>'
-                      +       '<div> <a id="cancel_btn">キャンセル</a>&nbsp;<input type="button" id="accept_btn" value="Accept" /></div>'
+                      +       '<div><input type="button" id="accept_btn" value="Accept" />&nbsp;<a id="cancel_btn">[(!)すべての編集内容を捨てて戻る]</a></div>'
                       +       '<p>images</p>'
                       +       '<ul id="image_upload_pain"></ul>'
                       +   '</div>'
@@ -112,7 +112,7 @@ var viewEditForm = function(entry_id) {
                       + '</div>')
 
     $('#cancel_btn').click(function(){viewEntry($('#screen'),entry_id,$('#nv_edit'));});
-    $('#accept_btn').click(function(){acceptEdit(entry_id, $('#source'), $('#accept_btn'));});
+    $('#accept_btn').click(function(){ onAcceptEdit($(this), entry_id, $('#source'));});
 
     $.ajax({
         type:"get",
@@ -127,11 +127,10 @@ var viewEditForm = function(entry_id) {
                 $('#image_upload_pain').append('<li>' + img_name + '</li>');
             }
             
-            $('#source').keyup( function(e){realtimePreview(entry_id,
-                                                            $('#source'),
-                                                            $('#preview_area'),
-                                                            $('#edit_title'),
-                                                            e);} );
+            $('#source').keyup( function(e){onPreview($(this), e,
+                                                      entry_id,
+                                                      $('#preview_area'),
+                                                      $('#edit_title'));} );
         },
         error: function() {
             alert("Server Error. Pleasy try again later.");
@@ -140,7 +139,33 @@ var viewEditForm = function(entry_id) {
         }
     });
 }
-var realtimePreview = function(entry_id, srcobj,viewobj,titleobj, e) {
+
+var viewCreateForm = function() {
+    $('#screen').html('<h2>「<span id="edit_title">新しいページ(仮)</span>」の編集</h2>'
+                      + '<div style="display:flex;">'
+                      +   '<div style="padding:0.5em; width:50%">'
+                      +       '<p>editor</p>'
+                      +       '<textarea id="source" style="width:100%"></textarea>'
+                      +       '<div><input type="button" id="accept_btn" value="Accept" /></div>'
+                      +       '<p>images</p>'
+                      +       '<ul id="image_upload_pain"></ul>'
+                      +   '</div>'
+                      +   '<div style="padding:0.5em; width:50%">'
+                      +       '<p>preview</p>'
+                      +       '<div id="preview_area" style="border:1px solid #666; background-color:#FFE;padding:0.5em"></div>'
+                      +   '</div>'
+                      + '</div>')
+
+    $('#accept_btn').click(function(){onAcceptCreate($(this), $('#source'));});
+    $('#source').keyup( function(e){ onPreview($(this), e,
+                                               '00000000-000000',
+                                               $('#preview_area'),
+                                               $('#edit_title') );} );
+                                               
+}
+
+
+var onPreview = function(srcobj, e, entry_id, viewobj,titleobj) {
 //    if ((e.keyCode != 13) && (e.keyCode != 8) && (e.keyCode != 46)) { return; } // cr, bs, del
     if (!$(srcobj).val()) {return;}
 
@@ -164,7 +189,7 @@ var realtimePreview = function(entry_id, srcobj,viewobj,titleobj, e) {
     });
 };
 
-var acceptEdit = function(entry_id, srcobj, btnobj) {
+var onAcceptEdit = function(btnobj, entry_id, srcobj) {
     var data = { entry: {id: entry_id,
                          source: $(srcobj).val()} };
     $(btnobj).attr("disabled", true);
@@ -183,37 +208,31 @@ var acceptEdit = function(entry_id, srcobj, btnobj) {
             alert("Server Error. Pleasy try again later.");
         },
         complete: function() {
+            $(btnobj).attr("disabled", false);
         }
     });
 };
 
-var addCreateForm = function() {
-    $('#screen').html('<form><div id="viewpanel"></div><div id="console"></div></form>')
-    $('#viewpanel').append('<textarea name="source" id="src"/><div id="preview_area">')
-
-    $('#src').keydown( function(e) {
-        if ((e.keyCode != 13) && (e.keyCode != 8) && (e.keyCode != 46)) { return; } // cr, bs, del
-        if (!$('#src').val()) {return;}
-
-        var data = { id:'00000000_000000',
-                     source: $('#src').val() };
-        $.ajax({
-            type:"post",
-            url:"../api/v1/preview",
-            data:JSON.stringify(data),
-            contentType: 'application/json',
-            dataType: "json",
-            success: function(json_data) {
-                $('#preview_area').html(
-                    json_data['entry']['html']);
-                $('#src').focus();
-            },
-            error: function() {
-                alert("Server Error. Pleasy try again later.");
-            },
-            complete: function() {
-            }
-        });
+var onAcceptCreate = function(btnobj, srcobj) {
+    var data = { entry: {source: $(srcobj).val()} };
+    $(btnobj).attr("disabled", true);
+    $.ajax({
+        type:"post",
+        url:'../api/v1/entries?fields=html',
+        data:JSON.stringify(data),
+        contentType: 'application/json',
+        dataType: "json",
+        success: function(json_data) {
+            $('#screen').html('<p>以下の内容で作成しました</p>'
+                              + '<div id="update_view"></div>');
+            $('#update_view').html(json_data['entry']['html']);
+        },
+        error: function() {
+            alert("Server Error. Pleasy try again later.");
+        },
+        complete: function() {
+            $(btnobj).attr("disabled", false);
+        }
     });
 };
 

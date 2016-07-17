@@ -1,7 +1,7 @@
 #-*- coding:utf-8 -*-
 
 from viewmodels import createContext, getRenderer
-from models import EHEntry
+from models import VirtualEntry
 from hatena_syntax import HtmlCanvas
 from my_enc_tool import *
 from page_completer import PageCompleter
@@ -31,72 +31,6 @@ def _getCatMap(context):
             if not cat in catmap: catmap[cat] = []
             catmap[cat].append(entry)
     return catmap
-
-
-class VirtualEntry(EHEntry):
-    def __init__(self, context, entry_id, entry_name, source):
-        EHEntry.__init__(self, context, entry_id, entry_name)
-        self.source = ez_decode(source)
-
-    #----------------------------------------
-    # ファイル操作
-    #----------------------------------------
-    def read(self):              return conv_encoding(self.source)
-    def readlines(self):         return self.source.split(u'\n')
-    def write(self, text):       self.source = ez_decode(text)
-    def writelines(self, lines): u'\n'.join(ez_decode(l) for l in lines)
-    def createScanner(self):
-        scanner = hatena_syntax.TextScanner()
-        scanner.setSource(self.source)
-        return scanner
-
-    #----------------------------------------
-    # メタ情報
-    #----------------------------------------
-    def getImageIdList(self):
-        return []
-
-    def getRendererId(self):
-        '''
-        自身をレンダリングして欲しいモジュールの entry_idを取得する
-        '''
-        first_line = self._loadShebang()
-
-        matobj = re.match(r"#!rendering:(.*)", first_line)
-        if matobj != None:
-            renderer_id = matobj.group(1).strip()
-            if renderer_id == 'self':
-                renderer_id = self.entry_id
-            return renderer_id
-        else:
-            return None
-
-    def _loadShebang(self):
-        for line in self.readlines():
-            if len(line.strip()) == 0:
-                continue
-            elif line[0] == '#':
-                if re.match(r"#!", line) != None:
-                    return line
-            else:
-                return ''
-        else:
-            return ''
-
-    #----------------------------------------
-    # イメージ操作
-    #----------------------------------------
-    def saveImage(self, uploadFile): pass
-    def loadImage(self, img_id):     pass
-
-    #----------------------------------------
-    # private (このクラスの中以外で使っちゃダメよ)
-    #----------------------------------------
-    def _getCatsAndTitle(self):
-        headline = self.readlines()[0]
-        if len(headline) == 0:   headline = '(無題)'
-        elif headline[0] == '*': headline = headline[1:]
-        return self._parseTitle(headline)
 
 def _entry2data(entry, fields, context):
     entry_data = {}
@@ -147,6 +81,24 @@ def update_entry(id_or_name):
 
     js = json.dumps({'entry' : _entry2data(entry, fields, context)})
     return Response(js, status=200, mimetype='application/json')
+
+@app.route('/api/v1/entries', methods=['POST'])
+def create_entry():
+    json_obj = request.json
+    context  = createContext('save_entry')
+    entry    = context.createEntry()
+    entry.write(conv_encoding(json_obj['entry']['source']))
+
+    if entry.getRendererId() == None:
+        completer = PageCompleter()
+        completer.complete(entry)
+
+    # レスポンスを用意
+    fields = request.args.get('fields').split(',') if request.args.get('fields') != None else []
+
+    js = json.dumps({'entry' : _entry2data(entry, fields, context)})
+    return Response(js, status=201, mimetype='application/json')
+
 
 
 @app.route('/api/v1/categories', methods=['GET'])
