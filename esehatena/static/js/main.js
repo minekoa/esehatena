@@ -1,6 +1,6 @@
 
 var addSiteHeader = function() {
-   $('#Main').append('<h1 class="site_title">esehatena</h1>');
+   $('#Main').append('<h1 id="site_title" class="site_title">esehatena</h1>');
 };
 
 var addNaviBar = function() {
@@ -10,11 +10,26 @@ var addNaviBar = function() {
     $('#nav').append('|<a id="nv_list">一覧</a>')
     $('#nav').append('|<a id="nv_home">ホーム</a>')
     $('#nav').append('|<a id="nv_new">新しい記事を作る</a>')
+    $('#nav').append('|<a id="nv_close">△</a>|')
 
     $('#nv_top').click(function(){viewPage(0, 10);});
     $('#nv_list').click(viewEntryList);
     $('#nv_new').click(viewCreateForm);
     $('#nv_home').click(function(){viewEntry($('#screen'),'Home',$('#nv_edit'));});
+    $('#nv_close').click(headerClose);
+};
+
+var headerClose = function() {
+    $('#site_title').hide();
+    $(this).unbind('click');
+    $(this).bind('click', headerOpen);
+    $(this).html('▽');
+};
+var headerOpen = function() {
+    $('#site_title').show();
+    $(this).unbind('click');
+    $(this).bind('click', headerClose);
+    $(this).html('△');
 };
 
 var addScreen = function() {
@@ -96,18 +111,18 @@ var viewPage = function(page, span) {
 };
 
 var viewEditForm = function(entry_id) {
-    $('#screen').html('<h2>「<span id="edit_title">' + entry_id + '</span>」の編集</h2>'
+    $('#screen').html('<h2 style="margin-top:0.8em;">「<span id="edit_title">' + entry_id + '</span>」の編集</h2>'
                       + '<div style="display:flex;">'
                       +   '<div style="padding:0.5em; width:50%">'
-                      +       '<p>editor</p>'
-                      +       '<textarea id="source" style="width:100%"></textarea>'
+                      +       '<p style="font-size:0.8em;">editor</p>'
+                      +       '<textarea id="source" style="width:100%;height:30em;"></textarea>'
                       +       '<div><input type="button" id="accept_btn" value="Accept" />&nbsp;<a id="cancel_btn">[(!)すべての編集内容を捨てて戻る]</a></div>'
-                      +       '<p>images</p>'
+                      +       '<p style="font-size:0.8em;">images</p>'
                       +       '<ul id="image_upload_pain"></ul>'
                       +   '</div>'
                       +   '<div style="padding:0.5em; width:50%">'
-                      +       '<p>preview</p>'
-                      +       '<div id="preview_area" style="border:1px solid #666; background-color:#FFE;padding:0.5em"></div>'
+                      +       '<p style="font-size:0.8em;">preview</p>'
+                      +       '<div id="preview_area" style="border:1px solid #666; background-color:#FFE;padding:0.5em;overflow:auto;height:30em;"></div>'
                       +   '</div>'
                       + '</div>')
 
@@ -138,21 +153,21 @@ var viewEditForm = function(entry_id) {
         complete: function() {
         }
     });
-}
+};
 
 var viewCreateForm = function() {
-    $('#screen').html('<h2>「<span id="edit_title">新しいページ(仮)</span>」の編集</h2>'
+    $('#screen').html('<h2 style="margin-top:0.8em;">「<span id="edit_title">新しいページ(仮)</span>」の編集</h2>'
                       + '<div style="display:flex;">'
                       +   '<div style="padding:0.5em; width:50%">'
-                      +       '<p>editor</p>'
-                      +       '<textarea id="source" style="width:100%"></textarea>'
+                      +       '<p style="font-size:0.8em;">editor</p>'
+                      +       '<textarea id="source" style="width:100%;height:30em;"></textarea>'
                       +       '<div><input type="button" id="accept_btn" value="Accept" /></div>'
-                      +       '<p>images</p>'
+                      +       '<p style="font-size:0.8em;">images</p>'
                       +       '<ul id="image_upload_pain"></ul>'
                       +   '</div>'
                       +   '<div style="padding:0.5em; width:50%">'
-                      +       '<p>preview</p>'
-                      +       '<div id="preview_area" style="border:1px solid #666; background-color:#FFE;padding:0.5em"></div>'
+                      +       '<p style="font-size:0.8em;">preview</p>'
+                      +       '<div id="preview_area" style="border:1px solid #666; background-color:#FFE;padding:0.5em;overflow:auto;height:30em;"></div>'
                       +   '</div>'
                       + '</div>')
 
