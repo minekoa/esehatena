@@ -43,7 +43,10 @@ var viewEntryList =function() {
         contentType: 'application/json',
         dataType: "json",
         success: function(json_data) {
-            $('#screen').html('<table id="entry_list"></table>');
+            $('#screen').html('<div class="navibar">|<a id="ent-list">entry</a>|<a id="cat-list">category</a>|</div>' +
+                              '<table id="entry_list"></table>');
+            $('#cat-list').click(viewCategoryList);
+
             for (entry of json_data) {
                 eid   = entry['entry']['id'];
                 title = entry['entry']['title'];
@@ -66,6 +69,45 @@ var viewEntryList =function() {
     });
 }; 
 
+var viewCategoryList =function() {
+    $.ajax({
+        type:"get",
+        url:"../api/v1/categories?fields=id,title,categories",
+        contentType: 'application/json',
+        dataType: "json",
+        success: function(json_data) {
+            $('#screen').html('<div class="navibar">|<a id="ent-list">entry</a>|<a id="cat-list">category</a>|</div>' +
+                              '<table id="category_list"></table>');
+            $('#ent-list').click(viewEntryList);
+
+            for (entry of json_data) {
+                name  = entry['category']['name'];
+
+                var buf = '<ul>';
+                for (ent of entry['category']['entries']) {
+                    buf += '<li class="elink" entry_id="' + ent['entry']['id'] + '">' + ent['entry']['title'] + '</li>';
+                }
+                buf += '</ul>';
+
+                $('#category_list').append(
+                    '<tr><td class="clink">' + name + '</td>' +
+                    '<td>' + buf + '</td></tr>');
+            }                        
+            $('.clink').click( function() {
+                viewCategory($(this).text());
+            });
+            $('.elink').click( function() {
+                viewEntry($('#screen'), $(this).attr('entry_id'), $('#nv_edit'));
+            });
+        },
+        error: function() {
+            alert("Server Error. Pleasy try again later.");
+        },
+        complete: function() {
+        }
+    });
+};
+
 var viewEntry = function(jobj, entry_id, editobj) {
     $.ajax({
         type:"get",
@@ -78,6 +120,35 @@ var viewEntry = function(jobj, entry_id, editobj) {
                 $(editobj).unbind('click');
                 $(editobj).click( function() {viewEditForm(entry_id);} );
             }
+        },
+        error: function() {
+            alert("Server Error. Pleasy try again later.");
+        },
+        complete: function() {
+        }
+    });
+};
+
+var viewCategory = function(cat_name) {
+    $.ajax({
+        type:"get",
+        url:"../api/v1/categories/" + cat_name,
+        contentType: 'application/json',
+        dataType: "json",
+        success: function(json_data) {
+            var buf = '<ul>';
+            for (entry of json_data['category']['entries']) {
+                buf += '<li><a href="#entry' + entry['entry']['id'] + '">'+ entry['entry']['title'] + '</a></li>';
+            }
+            buf += '</ul>';
+            $('#screen').html('<h2>category: "' + cat_name + '"</h2>' + buf);
+
+            for (entry of json_data['category']['entries']) {
+                entry_id = entry['entry']['id'];
+                div_id   = 'vw-' + entry_id;
+                $('#screen').append('<div id="' + div_id +'"></div>')
+                viewEntry($('#'+div_id), entry_id, null);
+            }                        
         },
         error: function() {
             alert("Server Error. Pleasy try again later.");
