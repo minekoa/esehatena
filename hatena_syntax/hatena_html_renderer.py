@@ -250,7 +250,7 @@ class HtmlRenderingVisitor(object):
                 title = matobj.group(1).strip()[1:] # '=" の除去
                 break
             else:
-                title = '(タイトル未取得): %s' % html_link.getUrl()
+                title = u'(タイトル未取得): %s' % html_link.getUrl()
                 break
         else:
             title = html_link.getUrl()

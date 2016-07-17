@@ -4,6 +4,7 @@ from viewmodels import createContext, getRenderer
 from models import EHEntry
 from hatena_syntax import HtmlCanvas
 from my_enc_tool import *
+from page_completer import PageCompleter
 import hatena_syntax
 
 from flask import request, abort, Response
@@ -92,7 +93,7 @@ class VirtualEntry(EHEntry):
     # private (このクラスの中以外で使っちゃダメよ)
     #----------------------------------------
     def _getCatsAndTitle(self):
-        headline = self.source[0]
+        headline = self.readlines()[0]
         if len(headline) == 0:   headline = '(無題)'
         elif headline[0] == '*': headline = headline[1:]
         return self._parseTitle(headline)
@@ -102,6 +103,7 @@ def _entry2data(entry, fields, context):
     if 'id'         in fields: entry_data['id']         = entry.entry_id
     if 'title'      in fields: entry_data['title']      = entry.getTitle()
     if 'categories' in fields: entry_data['categories'] = entry.getCategories()
+    if 'images'     in fields: entry_data['images']     = entry.getImageIdList()
     if 'html'       in fields: entry_data['html']       = _renderingEntry(context, entry)
     if 'source'     in fields: entry_data['source']     = entry.read()
     return entry_data
@@ -111,7 +113,7 @@ def _entry2data(entry, fields, context):
 
 @app.route('/api/v1/entries', methods=['GET'])
 def get_entries():
-    fields  = request.args.get('fields').split(',')
+    fields  = request.args.get('fields').split(',') if request.args.get('fields') != None else []
     context = createContext('entry')
     js = json.dumps( [ {'entry': _entry2data(entry, fields, context)}
                        for entry
@@ -121,13 +123,31 @@ def get_entries():
 
 @app.route('/api/v1/entries/<id_or_name>', methods=['GET'])
 def get_entry(id_or_name):
-    fields = request.args.get('fields').split(',')
+    fields  = request.args.get('fields').split(',') if request.args.get('fields') != None else []
     context  = createContext('entry')
     if not context.existEntry(id_or_name): abort(404)
     entry    = context.getEntry(id_or_name)
 
     js = json.dumps({'entry' : _entry2data(entry, fields, context)})
     return Response(js, status=200, mimetype='application/json')
+
+@app.route('/api/v1/entries/<id_or_name>', methods=['PUT'])
+def update_entry(id_or_name):
+    json_obj = request.json
+    context  = createContext('save_entry')
+    entry    = context.getEntry(id_or_name)
+    entry.write(conv_encoding(json_obj['entry']['source']))
+
+    if entry.getRendererId() == None:
+        completer = PageCompleter()
+        completer.complete(entry)
+
+    # レスポンスを用意
+    fields = request.args.get('fields').split(',') if request.args.get('fields') != None else []
+
+    js = json.dumps({'entry' : _entry2data(entry, fields, context)})
+    return Response(js, status=200, mimetype='application/json')
+
 
 @app.route('/api/v1/categories', methods=['GET'])
 def get_categories():

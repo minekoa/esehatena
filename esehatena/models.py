@@ -283,9 +283,11 @@ class HatenaRenderer(object):
         parser  = hatena_syntax.HatenaParser()
         hatena_document = parser.parse(scanner)
 
-        # 2. wget Link URL
-        title_appender = hatena_syntax.PageTitleAppender()
-        hatena_document.accept(title_appender)
+# preview のレンダリングでこれをやると死ぬので一旦コメントアウト
+# （編集中は辞書にキャッシュしてもいいかもね。）
+#        # 2. wget Link URL
+#        title_appender = hatena_syntax.PageTitleAppender()
+#        hatena_document.accept(title_appender)
 
         # 3. rendering
         html_renderer = hatena_syntax.HtmlRenderingVisitor(canvas, entry)
