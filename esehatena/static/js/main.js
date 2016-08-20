@@ -189,7 +189,9 @@ var viewEditForm = function(entry_id) {
                       +       '<textarea id="source" style="width:100%;height:30em;"></textarea>'
                       +       '<div><input type="button" id="accept_btn" value="Accept" />&nbsp;<a id="cancel_btn">[(!)すべての編集内容を捨てて戻る]</a></div>'
                       +       '<p style="font-size:0.8em;">images</p>'
-                      +       '<ul id="image_upload_pain"></ul>'
+                      +       '<form id="image_upload_form">'
+                      +           '<ul id="image_upload_pain"></ul>'
+                      +       '</form>'
                       +   '</div>'
                       +   '<div style="padding:0.5em; width:50%">'
                       +       '<p style="font-size:0.8em;">preview</p>'
@@ -197,8 +199,9 @@ var viewEditForm = function(entry_id) {
                       +   '</div>'
                       + '</div>')
 
-    $('#cancel_btn').click(function(){viewEntry($('#screen'),entry_id,$('#nv_edit'));});
+    $('#cancel_btn').click(function(){ viewEntry($('#screen'),entry_id,$('#nv_edit'));});
     $('#accept_btn').click(function(){ onAcceptEdit($(this), entry_id, $('#source'));});
+    $('#image_upload_form').on('click', '#image_upload_btn', function(){ onUploadImage(entry_id);});
 
     $.ajax({
         type:"get",
@@ -209,10 +212,13 @@ var viewEditForm = function(entry_id) {
             $('#edit_title').html(json_data['entry']['title']);
             $('#source').val(json_data['entry']['source']);
             $('#preview_area').html(json_data['entry']['html']);
+
             for (img_name of json_data['entry']['images']) {
                 $('#image_upload_pain').append('<li>' + img_name + '</li>');
             }
-            
+            $('#image_upload_pain').append('<li><input type="file" name="image">' +
+                                           '<input type="button" id="image_upload_btn" value="upload"></li>');
+
             $('#source').keyup( function(e){onPreview($(this), e,
                                                       entry_id,
                                                       $('#preview_area'),
@@ -226,6 +232,47 @@ var viewEditForm = function(entry_id) {
     });
 };
 
+var updateImageList = function(entry_id) {
+    $.ajax({
+        type:"get",
+        url:"../api/v1/entries/"+entry_id+"?fields=images",
+        contentType: 'application/json',
+        dataType: "json",
+        success: function(json_data) {
+            $('#image_upload_pain').html('');
+            for (img_name of json_data['entry']['images']) {
+                $('#image_upload_pain').append('<li>' + img_name + '</li>');
+            }
+            $('#image_upload_pain').append('<li><input type="file" name="image">' +
+                                           '<input type="button" id="image_upload_btn" value="upload"></li>');
+        },
+        error: function() {
+            alert("Server Error. Pleasy try again later.");
+        },
+        complete: function() {
+        }
+    });
+};
+
+var onUploadImage = function(entry_id) {
+    $.ajax({
+        type:"post",
+        url:"../upload_image/"+entry_id,
+        data : new FormData($('#image_upload_form').get(0)),
+        cache       : false,
+        contentType : false,
+        processData : false,
+        dataType    : "html",
+        success: function() {},
+        error: function() {
+            alert("Server Error. Pleasy try again later.");
+        },
+        complete: function() {
+            updateImageList(entry_id);
+        }
+    });
+};
+
 var viewCreateForm = function() {
     $('#screen').html('<h2 style="margin-top:0.8em;">「<span id="edit_title">新しいページ(仮)</span>」の編集</h2>'
                       + '<div style="display:flex;">'
@@ -233,8 +280,14 @@ var viewCreateForm = function() {
                       +       '<p style="font-size:0.8em;">editor</p>'
                       +       '<textarea id="source" style="width:100%;height:30em;"></textarea>'
                       +       '<div><input type="button" id="accept_btn" value="Accept" /></div>'
-                      +       '<p style="font-size:0.8em;">images</p>'
-                      +       '<ul id="image_upload_pain"></ul>'
+//新規作成時にはidが決まってないのでイメージアップロードできない
+//                      +       '<p style="font-size:0.8em;">images</p>'
+//                      +       '<form id="image_upload_form">'
+//                      +           '<ul id="image_upload_pain">'
+//                      +               '<li><input type="file" name="image">'
+//                      +                   '<input type="button" id="image_upload_btn" value="upload"></li>'
+//                      +           '</ul>'
+//                      +       '</form>'
                       +   '</div>'
                       +   '<div style="padding:0.5em; width:50%">'
                       +       '<p style="font-size:0.8em;">preview</p>'
@@ -243,6 +296,8 @@ var viewCreateForm = function() {
                       + '</div>')
 
     $('#accept_btn').click(function(){onAcceptCreate($(this), $('#source'));});
+//新規作成時にはidが決まってないのでイメージアップロードできない
+//    $('#image_upload_form').on('click', '#image_upload_btn', function(){ onUploadImage(entry_id);});
     $('#source').keyup( function(e){ onPreview($(this), e,
                                                '00000000-000000',
                                                $('#preview_area'),
