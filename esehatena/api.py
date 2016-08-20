@@ -121,7 +121,7 @@ def get_category(category_name):
     js = json.dumps(
         {'category': {'name'   : category_name,
                       'entries': [ {'entry': {'id': e.entry_id, 'title': e.getTitle()}}
-                                   for e in catmap[category_name] ] }}
+                                   for e in catmap[conv_encoding(category_name)] ] }}
     )
     return Response(js, status=200, mimetype='application/json')
 
